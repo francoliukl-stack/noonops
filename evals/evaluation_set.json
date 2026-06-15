@@ -1,0 +1,201 @@
+{
+  "version": "0.1.0",
+  "project": "Noon Sales Ops Copilot",
+  "completionPolicy": {
+    "requiredPassRate": 100,
+    "reportPath": "reports/evaluation-report.md",
+    "developmentCompleteOnlyWhenAllPassed": true
+  },
+  "cases": [
+    {
+      "id": "PRD-001",
+      "category": "prd_traceability",
+      "title": "PRD is stored as Markdown and includes evaluation policy",
+      "type": "file_contains",
+      "file": "docs/PRD.md",
+      "contains": [
+        "# Noon Sales Ops Copilot Chrome 插件 PRD v0.1",
+        "Evaluation Policy",
+        "100% 通过"
+      ]
+    },
+    {
+      "id": "DEV-001",
+      "category": "development_standard",
+      "title": "Development rules require PRD-first and full evaluation",
+      "type": "file_contains",
+      "file": "docs/DEVELOPMENT_RULES.md",
+      "contains": [
+        "PRD 先行",
+        "冲突先指出",
+        "npm run evaluate"
+      ]
+    },
+    {
+      "id": "MV3-001",
+      "category": "extension_manifest",
+      "title": "Chrome extension uses Manifest V3 and minimal active tab injection",
+      "type": "manifest",
+      "expected": {
+        "manifest_version": 3,
+        "permissions": [
+          "activeTab",
+          "scripting"
+        ]
+      }
+    },
+    {
+      "id": "HOST-001",
+      "category": "domain_support",
+      "title": "Noon domains are supported and non-noon domains are rejected",
+      "type": "host_support",
+      "accepted": [
+        "noon.com",
+        "www.noon.com",
+        "www.noon.ae",
+        "www.noon.sa"
+      ],
+      "rejected": [
+        "example.com",
+        "notnoon.com"
+      ]
+    },
+    {
+      "id": "SALES-001",
+      "category": "sales_parser",
+      "title": "Sales parser supports common visible sales formats",
+      "type": "sales_parser",
+      "samples": [
+        {
+          "input": "100 sold",
+          "expected": 100
+        },
+        {
+          "input": "100+ sold",
+          "expected": 100
+        },
+        {
+          "input": "1.2K sold",
+          "expected": 1200
+        },
+        {
+          "input": "10k+",
+          "expected": 10000
+        },
+        {
+          "input": "",
+          "expected": null
+        }
+      ]
+    },
+    {
+      "id": "PRICE-001",
+      "category": "price_parser",
+      "title": "Price parser extracts amount and currency",
+      "type": "price_parser",
+      "samples": [
+        {
+          "input": "AED 129.50",
+          "expected": {
+            "price": 129.5,
+            "currency": "AED"
+          }
+        },
+        {
+          "input": "SAR 1,299",
+          "expected": {
+            "price": 1299,
+            "currency": "SAR"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SORT-001",
+      "category": "sorting",
+      "title": "Default sales sorting puts missing sales last",
+      "type": "sort",
+      "mode": "sales_desc",
+      "products": [
+        {
+          "id": "a",
+          "title": "A",
+          "pagePosition": 1
+        },
+        {
+          "id": "b",
+          "title": "B",
+          "salesCount": 20,
+          "pagePosition": 2
+        },
+        {
+          "id": "c",
+          "title": "C",
+          "salesCount": 120,
+          "pagePosition": 3
+        }
+      ],
+      "expectedOrder": [
+        "c",
+        "b",
+        "a"
+      ]
+    },
+    {
+      "id": "EXPORT-001",
+      "category": "export",
+      "title": "CSV and table copy exports include stable business columns",
+      "type": "export_columns",
+      "expectedColumns": [
+        "排名",
+        "商品名称",
+        "销量",
+        "价格",
+        "评分",
+        "评论数",
+        "商品链接"
+      ]
+    },
+    {
+      "id": "INSIGHT-001",
+      "category": "insights",
+      "title": "No visible sales produces a data gap insight",
+      "type": "insight",
+      "products": [
+        {
+          "id": "p1",
+          "title": "Product 1",
+          "price": 20,
+          "rating": 4.5,
+          "pagePosition": 1
+        }
+      ],
+      "expectedType": "data_gap"
+    },
+    {
+      "id": "INSIGHT-002",
+      "category": "insights",
+      "title": "Visible sales produces top seller guidance",
+      "type": "insight",
+      "products": [
+        {
+          "id": "p1",
+          "title": "Top Product",
+          "price": 20,
+          "salesCount": 200,
+          "rating": 4.4,
+          "pagePosition": 1
+        },
+        {
+          "id": "p2",
+          "title": "Second Product",
+          "price": 18,
+          "salesCount": 100,
+          "rating": 4.2,
+          "pagePosition": 2
+        }
+      ],
+      "expectedType": "top_seller"
+    }
+  ]
+}

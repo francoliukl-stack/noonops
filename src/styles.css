@@ -1,0 +1,320 @@
+#noon-ops-copilot-panel,
+#noon-ops-copilot-panel * {
+  box-sizing: border-box;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+#noon-ops-copilot-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  height: 100vh;
+  color: #15212f;
+  background: #f8fafc;
+  border-left: 1px solid #d8e0ea;
+  box-shadow: -10px 0 30px rgba(17, 24, 39, 0.18);
+  transform: translateX(110%);
+  transition: transform 160ms ease;
+}
+
+#noon-ops-copilot-panel.is-visible {
+  transform: translateX(0);
+}
+
+#noon-ops-copilot-panel.is-collapsed {
+  transform: translateX(calc(100% - 44px));
+}
+
+.noon-ops-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 14px 14px 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #d8e0ea;
+}
+
+.noon-ops-eyebrow {
+  margin-bottom: 3px;
+  color: #607086;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.noon-ops-header h2 {
+  margin: 0;
+  color: #101828;
+  font-size: 18px;
+  font-weight: 760;
+}
+
+.noon-ops-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.noon-ops-header-actions button,
+.noon-ops-button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  color: #1d2939;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.noon-ops-header-actions button:hover,
+.noon-ops-button:hover {
+  background: #eef4ff;
+  border-color: #9db7df;
+}
+
+.noon-ops-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+
+.noon-ops-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.noon-ops-select {
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  color: #1d2939;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.noon-ops-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.noon-ops-summary-card {
+  min-width: 0;
+  padding: 9px 8px;
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+}
+
+.noon-ops-summary-card span {
+  display: block;
+  margin-bottom: 3px;
+  color: #667085;
+  font-size: 11px;
+}
+
+.noon-ops-summary-card strong {
+  display: block;
+  overflow: hidden;
+  color: #111827;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noon-ops-section {
+  margin-bottom: 14px;
+}
+
+.noon-ops-section h3 {
+  margin: 0 0 8px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.noon-ops-insights {
+  display: grid;
+  gap: 8px;
+}
+
+.noon-ops-insight {
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
+  border-left: 4px solid #0e9f6e;
+  border-radius: 8px;
+}
+
+.noon-ops-insight-data_gap {
+  border-left-color: #f59e0b;
+}
+
+.noon-ops-insight-low_sales_risk {
+  border-left-color: #dc2626;
+}
+
+.noon-ops-insight-rating_opportunity {
+  border-left-color: #2563eb;
+}
+
+.noon-ops-insight strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #111827;
+  font-size: 13px;
+}
+
+.noon-ops-insight p,
+.noon-ops-muted,
+.noon-ops-empty p {
+  margin: 0;
+  color: #526174;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.noon-ops-products {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 20px;
+}
+
+.noon-ops-product {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 9px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+}
+
+.noon-ops-rank {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #0f172a;
+  background: #fef3c7;
+  border: 1px solid #f5d46e;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.noon-ops-product-main {
+  min-width: 0;
+}
+
+.noon-ops-product-title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: 8px;
+  color: #101828;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-decoration: none;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.noon-ops-product-title:hover {
+  color: #175cd3;
+  text-decoration: underline;
+}
+
+.noon-ops-product-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.noon-ops-pill {
+  max-width: 100%;
+  padding: 3px 6px;
+  overflow: hidden;
+  color: #475467;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noon-ops-sales {
+  color: #067647;
+  background: #ecfdf3;
+  border-color: #abefc6;
+}
+
+.noon-ops-empty {
+  padding: 24px 14px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+}
+
+.noon-ops-empty h3 {
+  margin: 0 0 6px;
+  color: #111827;
+  font-size: 15px;
+}
+
+.noon-ops-status {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 9px 10px;
+  color: #ffffff;
+  background: #1d2939;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.2);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  pointer-events: none;
+}
+
+.noon-ops-status.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 520px) {
+  #noon-ops-copilot-panel {
+    width: 100vw;
+  }
+
+  .noon-ops-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .noon-ops-select {
+    grid-column: 1 / -1;
+  }
+
+  .noon-ops-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
