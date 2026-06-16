@@ -297,11 +297,11 @@
       title.dataset.productId = product.id;
 
       const meta = createElement("div", "noon-ops-product-meta");
-      const sourceLabel = product.salesSignalSource === "ratings" ? "Ratings" : "销量";
-      const sales = createElement("span", "noon-ops-pill noon-ops-sales", product.salesSignalCount === undefined ? "销量未识别" : `${sourceLabel} ${parser.formatNumber(product.salesSignalCount)}`);
-      const price = createElement("span", "noon-ops-pill", product.price === undefined ? "价格未识别" : parser.formatMoney(product));
-      const rating = createElement("span", "noon-ops-pill", product.rating === undefined ? "评分未识别" : `评分 ${product.rating}`);
-      meta.append(sales, price, rating);
+      const primaryMetric = getPrimaryMetric(product);
+      const primary = createElement("span", `noon-ops-pill noon-ops-primary noon-ops-primary-${primaryMetric.type}`, primaryMetric.text);
+      const sales = createElement("span", "noon-ops-pill noon-ops-secondary", formatSalesMetric(product));
+      const price = createElement("span", "noon-ops-pill noon-ops-secondary", product.price === undefined ? "价格未识别" : parser.formatMoney(product));
+      meta.append(primary, sales, price);
 
       main.append(title, meta);
       item.append(rank, main);
@@ -310,6 +310,45 @@
 
     section.appendChild(list);
     return section;
+  }
+
+  function formatSalesMetric(product) {
+    if (product.salesSignalCount === undefined) {
+      return "销量未识别";
+    }
+    const sourceLabel = product.salesSignalSource === "ratings" ? "Ratings" : "销量";
+    return `${sourceLabel} ${parser.formatNumber(product.salesSignalCount)}`;
+  }
+
+  function getPrimaryMetric(product) {
+    if (state.sortMode === "price_asc" || state.sortMode === "price_desc") {
+      return {
+        type: "price",
+        text: product.price === undefined ? "价格未识别" : `价格 ${parser.formatMoney(product)}`
+      };
+    }
+    if (state.sortMode === "rating_desc") {
+      return {
+        type: "rating",
+        text: product.rating === undefined ? "评分未识别" : `评分 ${product.rating}`
+      };
+    }
+    if (state.sortMode === "sales_desc") {
+      return {
+        type: "sales",
+        text: formatSalesMetric(product)
+      };
+    }
+    if (state.sortMode === "page_order") {
+      return {
+        type: "position",
+        text: `位置 ${product.pagePosition}`
+      };
+    }
+    return {
+      type: "heat",
+      text: product.reviewCount === undefined ? "热度未识别" : `热度 ${parser.formatNumber(product.reviewCount)} Ratings`
+    };
   }
 
   async function copyResults() {

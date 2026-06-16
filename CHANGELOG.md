@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 - 2026-06-17
+
+- Updated product cards so the highlighted pill follows the active sorting metric instead of always highlighting sales.
+- Default heat sorting now highlights heat/Ratings as the primary metric.
+- Sales, price, rating, and page-order sorts each highlight their corresponding metric.
+- Kept two gray secondary indicators on every product card: sales signal and price.
+- Updated PRD, evaluation set, automated tests, and evaluation report for dynamic metric highlighting.
+
 ## 0.1.2 - 2026-06-17
 
 - Changed the default product sort from sales volume to heat, using Ratings count as the primary default ordering signal.

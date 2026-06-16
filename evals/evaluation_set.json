@@ -1,5 +1,5 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.2"
+      "version": "0.1.3"
     },
     {
       "id": "PRD-001",
@@ -245,6 +245,21 @@
         "评分",
         "评论数",
         "商品链接"
+      ]
+    },
+    {
+      "id": "METRIC-001",
+      "category": "interaction",
+      "title": "Product cards highlight the active sorting metric and keep sales plus price as secondary indicators",
+      "type": "file_contains",
+      "file": "src/content.js",
+      "contains": [
+        "getPrimaryMetric",
+        "noon-ops-primary",
+        "noon-ops-secondary",
+        "state.sortMode === \"price_asc\"",
+        "state.sortMode === \"sales_desc\"",
+        "热度"
       ]
     },
     {
