@@ -30,9 +30,22 @@
     return currency ? `${currency} ${formatted}` : formatted;
   }
 
+  function salesMetric(product) {
+    if (hasNumber(product.salesSignalCount)) {
+      return product.salesSignalCount;
+    }
+    if (hasNumber(product.salesCount)) {
+      return product.salesCount;
+    }
+    if (hasNumber(product.reviewCount)) {
+      return product.reviewCount;
+    }
+    return undefined;
+  }
+
   function createInsights(products) {
     const insights = [];
-    const withSales = products.filter((product) => hasNumber(product.salesCount));
+    const withSales = products.filter((product) => hasNumber(salesMetric(product)));
     const withPrice = products.filter((product) => hasNumber(product.price));
 
     if (!withSales.length) {
@@ -44,7 +57,7 @@
       return insights;
     }
 
-    const topSellers = [...withSales].sort((a, b) => b.salesCount - a.salesCount).slice(0, 3);
+    const topSellers = [...withSales].sort((a, b) => salesMetric(b) - salesMetric(a)).slice(0, 3);
     if (topSellers.length) {
       insights.push({
         type: "top_seller",
@@ -69,10 +82,10 @@
 
     if (withPrice.length >= 3 && withSales.length >= 3) {
       const medianPrice = median(withPrice.map((product) => product.price));
-      const medianSales = median(withSales.map((product) => product.salesCount));
+      const medianSales = median(withSales.map((product) => salesMetric(product)));
       const riskProducts = products
-        .filter((product) => hasNumber(product.price) && hasNumber(product.salesCount))
-        .filter((product) => product.price > medianPrice && product.salesCount < medianSales)
+        .filter((product) => hasNumber(product.price) && hasNumber(salesMetric(product)))
+        .filter((product) => product.price > medianPrice && salesMetric(product) < medianSales)
         .slice(0, 3);
 
       if (riskProducts.length) {
@@ -85,8 +98,8 @@
       }
 
       const opportunityProducts = products
-        .filter((product) => hasNumber(product.rating) && hasNumber(product.salesCount))
-        .filter((product) => product.rating >= 4.3 && product.salesCount < medianSales)
+        .filter((product) => hasNumber(product.rating) && hasNumber(salesMetric(product)))
+        .filter((product) => product.rating >= 4.3 && salesMetric(product) < medianSales)
         .slice(0, 3);
 
       if (opportunityProducts.length) {

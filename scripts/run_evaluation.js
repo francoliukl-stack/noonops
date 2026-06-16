@@ -49,6 +49,18 @@ function runCase(testCase) {
       }
       return;
     }
+    case "review_parser": {
+      for (const sample of testCase.samples) {
+        assert.equal(normalizeUndefined(parser.parseReviewCountText(sample.input)), sample.expected, sample.input);
+      }
+      return;
+    }
+    case "sales_signal": {
+      for (const sample of testCase.samples) {
+        assert.deepEqual(parser.getSalesSignal(sample.product), sample.expected);
+      }
+      return;
+    }
     case "price_parser": {
       for (const sample of testCase.samples) {
         assert.deepEqual(parser.parsePriceText(sample.input), sample.expected, sample.input);
@@ -66,6 +78,8 @@ function runCase(testCase) {
         title: "Sample",
         url: "https://www.noon.com/p/sample",
         salesCount: 10,
+        salesSignalCount: 10,
+        salesSignalSource: "sold",
         price: 20,
         currency: "AED",
         rating: 4.5,

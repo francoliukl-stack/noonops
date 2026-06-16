@@ -83,8 +83,58 @@
           "expected": 10000
         },
         {
+          "input": "860+ sold recently",
+          "expected": 860
+        },
+        {
           "input": "",
           "expected": null
+        }
+      ]
+    },
+    {
+      "id": "RATINGS-001",
+      "category": "ratings_parser",
+      "title": "Ratings count from noon list/detail pages can be used as sales signal fallback",
+      "type": "review_parser",
+      "samples": [
+        {
+          "input": "40 Ratings",
+          "expected": 40
+        },
+        {
+          "input": "3.4 (62)",
+          "expected": 62
+        }
+      ]
+    },
+    {
+      "id": "SIGNAL-001",
+      "category": "sales_signal",
+      "title": "Sales signal prefers sold recently and falls back to ratings",
+      "type": "sales_signal",
+      "samples": [
+        {
+          "product": {
+            "salesCount": 860,
+            "salesText": "860+ sold recently",
+            "reviewCount": 40
+          },
+          "expected": {
+            "count": 860,
+            "text": "860+ sold recently",
+            "source": "sold"
+          }
+        },
+        {
+          "product": {
+            "reviewCount": 40
+          },
+          "expected": {
+            "count": 40,
+            "text": "40 Ratings",
+            "source": "ratings"
+          }
         }
       ]
     },
@@ -125,13 +175,13 @@
         {
           "id": "b",
           "title": "B",
-          "salesCount": 20,
+          "salesSignalCount": 20,
           "pagePosition": 2
         },
         {
           "id": "c",
           "title": "C",
-          "salesCount": 120,
+          "salesSignalCount": 120,
           "pagePosition": 3
         }
       ],
@@ -150,10 +200,23 @@
         "排名",
         "商品名称",
         "销量",
+        "销量来源",
         "价格",
         "评分",
         "评论数",
         "商品链接"
+      ]
+    },
+    {
+      "id": "AUTO-001",
+      "category": "interaction",
+      "title": "Panel auto refreshes when URL or page product DOM changes",
+      "type": "file_contains",
+      "file": "src/content.js",
+      "contains": [
+        "MutationObserver",
+        "patchHistory",
+        "scheduleAutoRefresh"
       ]
     },
     {

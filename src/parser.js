@@ -13,8 +13,9 @@
     'a[href*="/saudi-en/"]',
     'a[href*="/egypt-en/"]'
   ];
-  const PRICE_RE = /\b(?:AED|SAR|EGP|KWD|OMR|BHD|QAR)?\s*([0-9]+(?:[, ][0-9]{3})*(?:\.[0-9]{1,2})?)\b/i;
-  const CURRENCY_RE = /\b(AED|SAR|EGP|KWD|OMR|BHD|QAR)\b/i;
+  const AMOUNT_RE = /([0-9]+(?:[, ][0-9]{3})*(?:\.[0-9]{1,2})?)/;
+  const PRICE_RE = /\b(?:AED|SAR|EGP|KWD|OMR|BHD|QAR|د\.إ|ر\.س|฿)?\s*([0-9]+(?:[, ][0-9]{3})*(?:\.[0-9]{1,2})?)\b/i;
+  const CURRENCY_RE = /\b(AED|SAR|EGP|KWD|OMR|BHD|QAR)\b|د\.إ|ر\.س|฿/i;
 
   function isNoonHost(hostname) {
     return NOON_HOST_RE.test(String(hostname || ""));
@@ -74,7 +75,14 @@
     }
 
     const currencyMatch = text.match(CURRENCY_RE);
-    const priceMatch = text.match(PRICE_RE);
+    let priceMatch;
+    if (currencyMatch) {
+      const afterCurrency = text.slice(currencyMatch.index + currencyMatch[0].length);
+      priceMatch = afterCurrency.match(AMOUNT_RE);
+    }
+    if (!priceMatch) {
+      priceMatch = text.match(PRICE_RE);
+    }
     if (!priceMatch) {
       return {};
     }
@@ -86,7 +94,7 @@
 
     return {
       price: amount,
-      currency: currencyMatch ? currencyMatch[1].toUpperCase() : undefined
+      currency: currencyMatch && currencyMatch[1] ? currencyMatch[1].toUpperCase() : undefined
     };
   }
 
@@ -106,11 +114,33 @@
 
   function parseReviewCountText(value) {
     const text = normalizeWhitespace(value);
-    const reviewMatch = text.match(/([0-9][0-9,]*(?:\.[0-9]+)?\s*[kKmM]?)\s*(?:reviews?|ratings?|\))/i);
+    const reviewMatch = text.match(/([0-9][0-9,]*(?:\.[0-9]+)?\s*[kKmM]?)\s*(?:reviews?|ratings?|评价|\))/i);
     if (reviewMatch) {
       return parseCompactNumber(reviewMatch[1]);
     }
     return undefined;
+  }
+
+  function getSalesSignal(product) {
+    if (Number.isFinite(product.salesCount)) {
+      return {
+        count: product.salesCount,
+        text: product.salesText || `${product.salesCount}`,
+        source: "sold"
+      };
+    }
+    if (Number.isFinite(product.reviewCount)) {
+      return {
+        count: product.reviewCount,
+        text: `${product.reviewCount} Ratings`,
+        source: "ratings"
+      };
+    }
+    return {
+      count: undefined,
+      text: "",
+      source: "missing"
+    };
   }
 
   function absoluteUrl(href, baseUrl) {
@@ -184,6 +214,58 @@
     }
 
     return {};
+  }
+
+  function findDetailTitle(documentObject) {
+    const title = firstText(documentObject, [
+      'h1',
+      '[data-qa*="title"]',
+      '[data-testid*="title"]',
+      '[class*="title"]'
+    ]);
+    if (title) {
+      return title;
+    }
+    return normalizeWhitespace(documentObject.title || "").replace(/\s*\|\s*noon.*$/i, "");
+  }
+
+  function extractDetailProduct(documentObject, baseUrl) {
+    const locationHref = baseUrl || documentObject.location && documentObject.location.href || "";
+    if (!/\/p\/?/i.test(locationHref)) {
+      return undefined;
+    }
+
+    const sourceRoot = documentObject.body || documentObject.documentElement || documentObject;
+    const title = findDetailTitle(documentObject);
+    if (!title) {
+      return undefined;
+    }
+
+    const image = sourceRoot.querySelector('img[alt], img[src]');
+    const priceInfo = findPrice(sourceRoot);
+    const salesInfo = findSales(sourceRoot);
+    const rating = findRating(sourceRoot) || parseRatingText(getElementText(sourceRoot));
+    const reviewCount = findReviewCount(sourceRoot);
+    const product = {
+      id: "product-1",
+      title,
+      url: locationHref,
+      imageUrl: image ? absoluteUrl(image.getAttribute("src") || image.getAttribute("data-src") || "", baseUrl) || undefined : undefined,
+      price: priceInfo.price,
+      currency: priceInfo.currency,
+      originalPrice: findOriginalPrice(sourceRoot),
+      discountText: findDiscount(sourceRoot) || undefined,
+      salesText: salesInfo.salesText,
+      salesCount: salesInfo.salesCount,
+      rating,
+      reviewCount,
+      pagePosition: 1
+    };
+    const salesSignal = getSalesSignal(product);
+    product.salesSignalCount = salesSignal.count;
+    product.salesSignalText = salesSignal.text;
+    product.salesSignalSource = salesSignal.source;
+    return product;
   }
 
   function findPrice(card) {
@@ -272,6 +354,12 @@
     const cards = findProductCards(documentObject);
     const products = [];
     const seenKeys = new Set();
+    const detailProduct = extractDetailProduct(documentObject, baseUrl);
+
+    if (detailProduct) {
+      products.push(detailProduct);
+      seenKeys.add(detailProduct.url || detailProduct.title);
+    }
 
     cards.forEach((card) => {
       const link = card.matches("a[href]") ? card : card.querySelector('a[href]');
@@ -292,7 +380,7 @@
       }
 
       seenKeys.add(key);
-      products.push({
+      const product = {
         id: `product-${products.length + 1}`,
         title,
         url,
@@ -306,7 +394,12 @@
         rating,
         reviewCount,
         pagePosition: products.length + 1
-      });
+      };
+      const salesSignal = getSalesSignal(product);
+      product.salesSignalCount = salesSignal.count;
+      product.salesSignalText = salesSignal.text;
+      product.salesSignalSource = salesSignal.source;
+      products.push(product);
     });
 
     return products;
@@ -344,12 +437,12 @@
     if (mode === "page_order") {
       return copy.sort((a, b) => a.pagePosition - b.pagePosition);
     }
-    return copy.sort(missingLast("salesCount", "desc"));
+    return copy.sort(missingLast("salesSignalCount", "desc"));
   }
 
   function summarizeProducts(products) {
     const prices = products.map((item) => item.price).filter((price) => Number.isFinite(price));
-    const salesCounts = products.map((item) => item.salesCount).filter((sales) => Number.isFinite(sales));
+    const salesCounts = products.map((item) => item.salesSignalCount).filter((sales) => Number.isFinite(sales));
     const totalPrice = prices.reduce((sum, price) => sum + price, 0);
 
     return {
@@ -387,7 +480,8 @@
     return products.map((product, index) => ({
       rank: index + 1,
       title: product.title,
-      sales: product.salesCount === undefined ? "未识别" : product.salesCount,
+      sales: product.salesSignalCount === undefined ? "未识别" : product.salesSignalCount,
+      salesSource: product.salesSignalSource === "ratings" ? "Ratings" : product.salesSignalSource === "sold" ? "Sold" : "",
       price: formatMoney(product),
       rating: product.rating === undefined ? "" : product.rating,
       reviewCount: product.reviewCount === undefined ? "" : product.reviewCount,
@@ -396,11 +490,12 @@
   }
 
   function toTsv(products) {
-    const headers = ["排名", "商品名称", "销量", "价格", "评分", "评论数", "商品链接"];
+    const headers = ["排名", "商品名称", "销量", "销量来源", "价格", "评分", "评论数", "商品链接"];
     const rows = buildExportRows(products).map((row) => [
       row.rank,
       row.title,
       row.sales,
+      row.salesSource,
       row.price,
       row.rating,
       row.reviewCount,
@@ -410,11 +505,12 @@
   }
 
   function toCsv(products) {
-    const headers = ["排名", "商品名称", "销量", "价格", "评分", "评论数", "商品链接"];
+    const headers = ["排名", "商品名称", "销量", "销量来源", "价格", "评分", "评论数", "商品链接"];
     const rows = buildExportRows(products).map((row) => [
       row.rank,
       row.title,
       row.sales,
+      row.salesSource,
       row.price,
       row.rating,
       row.reviewCount,
@@ -431,6 +527,8 @@
     parsePriceText,
     parseRatingText,
     parseReviewCountText,
+    getSalesSignal,
+    extractDetailProduct,
     extractProducts,
     sortProducts,
     summarizeProducts,

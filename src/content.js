@@ -20,8 +20,12 @@
     products: [],
     sortedProducts: [],
     insights: [],
-    supported: false
+    supported: false,
+    lastSignature: "",
+    lastAnalyzedUrl: ""
   };
+  let refreshTimer;
+  let observer;
 
   function createElement(tag, className, text) {
     const element = document.createElement(tag);
@@ -71,7 +75,10 @@
     const isVisible = panel.classList.toggle("is-visible");
     if (isVisible) {
       panel.classList.remove("is-collapsed");
+      startAutoRefresh();
       analyzeAndRender();
+    } else {
+      stopAutoRefresh();
     }
   }
 
@@ -80,6 +87,7 @@
     if (panel) {
       panel.classList.remove("is-visible");
     }
+    stopAutoRefresh();
   }
 
   function collapsePanel() {
@@ -92,6 +100,7 @@
   function analyzeAndRender() {
     const hostname = globalScope.location.hostname;
     state.supported = parser.isNoonHost(hostname);
+    state.lastAnalyzedUrl = globalScope.location.href;
     if (!state.supported) {
       state.products = [];
       state.sortedProducts = [];
@@ -109,7 +118,71 @@
     state.products = products;
     state.sortedProducts = sortedProducts;
     state.insights = insightsApi.createInsights(products);
+    state.lastSignature = buildPageSignature(products);
     render();
+  }
+
+  function buildPageSignature(products) {
+    const productPart = products.map((product) => [
+      product.url,
+      product.title,
+      product.price,
+      product.salesSignalCount,
+      product.salesSignalSource,
+      product.rating,
+      product.reviewCount
+    ].join("|")).join(";");
+    return `${globalScope.location.href}::${productPart}`;
+  }
+
+  function scheduleAutoRefresh(reason) {
+    const panel = getPanel();
+    if (!panel || !panel.classList.contains("is-visible")) {
+      return;
+    }
+
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      if (!state.supported && !parser.isNoonHost(globalScope.location.hostname)) {
+        return;
+      }
+      const products = parser.extractProducts(document, globalScope.location.href);
+      const signature = buildPageSignature(products);
+      if (signature !== state.lastSignature || globalScope.location.href !== state.lastAnalyzedUrl) {
+        analyzeAndRender();
+        flashStatus(reason === "url" ? "页面已切换，已自动刷新" : "页面商品已更新，已自动刷新");
+      }
+    }, 450);
+  }
+
+  function startAutoRefresh() {
+    if (!observer) {
+      observer = new MutationObserver((mutations) => {
+        const hasRelevantChange = mutations.some((mutation) => {
+          if (mutation.target && mutation.target.closest && mutation.target.closest(`#${PANEL_ID}`)) {
+            return false;
+          }
+          return mutation.addedNodes.length || mutation.removedNodes.length || mutation.type === "characterData";
+        });
+        if (hasRelevantChange) {
+          scheduleAutoRefresh("dom");
+        }
+      });
+      observer.observe(document.body || document.documentElement, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+    patchHistory();
+  }
+
+  function stopAutoRefresh() {
+    clearTimeout(refreshTimer);
+    if (observer) {
+      observer.disconnect();
+      observer = undefined;
+    }
   }
 
   function render() {
@@ -166,8 +239,8 @@
     const cards = createElement("div", "noon-ops-summary");
     const values = [
       ["商品数", summary.totalProducts],
-      ["有销量", summary.productsWithSales],
-      ["最高销量", summary.highestSales === undefined ? "未识别" : parser.formatNumber(summary.highestSales)],
+      ["有指标", summary.productsWithSales],
+      ["最高指标", summary.highestSales === undefined ? "未识别" : parser.formatNumber(summary.highestSales)],
       ["均价", summary.averagePrice === undefined ? "未识别" : summary.averagePrice.toFixed(summary.averagePrice % 1 === 0 ? 0 : 2)]
     ];
 
@@ -223,7 +296,8 @@
       title.rel = "noreferrer";
 
       const meta = createElement("div", "noon-ops-product-meta");
-      const sales = createElement("span", "noon-ops-pill noon-ops-sales", product.salesCount === undefined ? "销量未识别" : `销量 ${parser.formatNumber(product.salesCount)}`);
+      const sourceLabel = product.salesSignalSource === "ratings" ? "Ratings" : "销量";
+      const sales = createElement("span", "noon-ops-pill noon-ops-sales", product.salesSignalCount === undefined ? "销量未识别" : `${sourceLabel} ${parser.formatNumber(product.salesSignalCount)}`);
       const price = createElement("span", "noon-ops-pill", product.price === undefined ? "价格未识别" : parser.formatMoney(product));
       const rating = createElement("span", "noon-ops-pill", product.rating === undefined ? "评分未识别" : `评分 ${product.rating}`);
       meta.append(sales, price, rating);
@@ -308,6 +382,30 @@
       state.sortedProducts = parser.sortProducts(state.products, state.sortMode);
       render();
     }
+  }
+
+  function patchHistory() {
+    if (globalScope.__NOON_OPS_HISTORY_PATCHED__) {
+      return;
+    }
+    globalScope.__NOON_OPS_HISTORY_PATCHED__ = true;
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function patchedPushState() {
+      const result = originalPushState.apply(this, arguments);
+      setTimeout(() => scheduleAutoRefresh("url"), 0);
+      return result;
+    };
+
+    history.replaceState = function patchedReplaceState() {
+      const result = originalReplaceState.apply(this, arguments);
+      setTimeout(() => scheduleAutoRefresh("url"), 0);
+      return result;
+    };
+
+    globalScope.addEventListener("popstate", () => scheduleAutoRefresh("url"));
+    globalScope.addEventListener("hashchange", () => scheduleAutoRefresh("url"));
   }
 
   chrome.runtime.onMessage.addListener((message) => {
