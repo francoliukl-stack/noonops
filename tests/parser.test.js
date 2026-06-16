@@ -32,6 +32,7 @@ test("parseSalesText supports common sales formats", () => {
 test("parseReviewCountText supports noon Ratings text", () => {
   assert.equal(parser.parseReviewCountText("40 Ratings"), 40);
   assert.equal(parser.parseReviewCountText("3.4 (62)"), 62);
+  assert.equal(parser.parseReviewCountText("4.7 23 AED 129"), 23);
 });
 
 test("sales signal uses sold first and ratings as fallback", () => {
@@ -88,6 +89,26 @@ test("extractDetailProduct falls back to Ratings as sales signal", () => {
   assert.equal(product.salesCount, undefined);
   assert.equal(product.reviewCount, 40);
   assert.equal(product.salesSignalCount, 40);
+  assert.equal(product.salesSignalSource, "ratings");
+});
+
+test("extractDetailProduct reads adjacent detail page rating count when rating node omits label", () => {
+  const body = fakeNode("Dreamhouse Playset Pool Party Doll House with 75 Pieces and 3 Story Slide 4.7 23 AED 129.00", {}, {
+    '[data-qa*="price"]': fakeNode("AED 129.00"),
+    '[class*="rating"]': fakeNode("4.7")
+  });
+  const documentLike = fakeNode("", {}, {
+    h1: fakeNode("Dreamhouse Playset Pool Party Doll House")
+  });
+  documentLike.body = body;
+  documentLike.location = {
+    href: "https://www.noon.com/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/"
+  };
+
+  const product = parser.extractDetailProduct(documentLike, documentLike.location.href);
+
+  assert.equal(product.reviewCount, 23);
+  assert.equal(product.salesSignalCount, 23);
   assert.equal(product.salesSignalSource, "ratings");
 });
 

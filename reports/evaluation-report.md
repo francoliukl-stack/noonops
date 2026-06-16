@@ -1,8 +1,8 @@
 # Evaluation Report
 
 - Project: Noon Sales Ops Copilot
-- Evaluation set version: 0.1.3
-- Generated at: 2026-06-16T17:02:32.886Z
+- Evaluation set version: 0.1.4
+- Generated at: 2026-06-16T17:11:00.404Z
 - Evaluation cases: 17/17 passed (100%)
 - Node tests: passed
 - Completion status: COMPLETE
@@ -36,70 +36,76 @@ TAP version 13
 # Subtest: isNoonHost only accepts noon domains
 ok 1 - isNoonHost only accepts noon domains
   ---
-  duration_ms: 0.776917
+  duration_ms: 0.722084
   type: 'test'
   ...
 # Subtest: parseSalesText supports common sales formats
 ok 2 - parseSalesText supports common sales formats
   ---
-  duration_ms: 0.389625
+  duration_ms: 0.339375
   type: 'test'
   ...
 # Subtest: parseReviewCountText supports noon Ratings text
 ok 3 - parseReviewCountText supports noon Ratings text
   ---
-  duration_ms: 0.097291
+  duration_ms: 0.160625
   type: 'test'
   ...
 # Subtest: sales signal uses sold first and ratings as fallback
 ok 4 - sales signal uses sold first and ratings as fallback
   ---
-  duration_ms: 0.581167
+  duration_ms: 0.584333
   type: 'test'
   ...
 # Subtest: extractDetailProduct reads noon detail page sales from body text
 ok 5 - extractDetailProduct reads noon detail page sales from body text
   ---
-  duration_ms: 0.524084
+  duration_ms: 0.528083
   type: 'test'
   ...
 # Subtest: extractDetailProduct falls back to Ratings as sales signal
 ok 6 - extractDetailProduct falls back to Ratings as sales signal
   ---
-  duration_ms: 0.153
+  duration_ms: 0.136875
+  type: 'test'
+  ...
+# Subtest: extractDetailProduct reads adjacent detail page rating count when rating node omits label
+ok 7 - extractDetailProduct reads adjacent detail page rating count when rating node omits label
+  ---
+  duration_ms: 0.10325
   type: 'test'
   ...
 # Subtest: parsePriceText extracts currency and price
-ok 7 - parsePriceText extracts currency and price
+ok 8 - parsePriceText extracts currency and price
   ---
-  duration_ms: 0.086666
+  duration_ms: 0.038916
   type: 'test'
   ...
 # Subtest: default sort uses Ratings heat before sales signal
-ok 8 - default sort uses Ratings heat before sales signal
+ok 9 - default sort uses Ratings heat before sales signal
   ---
-  duration_ms: 0.089958
+  duration_ms: 0.259166
   type: 'test'
   ...
 # Subtest: sales sort puts missing sales last
-ok 9 - sales sort puts missing sales last
+ok 10 - sales sort puts missing sales last
   ---
-  duration_ms: 0.235667
+  duration_ms: 0.26925
   type: 'test'
   ...
 # Subtest: exports tsv and csv with stable columns
-ok 10 - exports tsv and csv with stable columns
+ok 11 - exports tsv and csv with stable columns
   ---
-  duration_ms: 0.432458
+  duration_ms: 0.249208
   type: 'test'
   ...
-1..10
-# tests 10
+1..11
+# tests 11
 # suites 0
-# pass 10
+# pass 11
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 84.751792
+# duration_ms 78.254542
 ```

@@ -118,6 +118,15 @@
     if (reviewMatch) {
       return parseCompactNumber(reviewMatch[1]);
     }
+
+    const adjacentRatingPattern = /\b[0-5](?:\.[0-9])?\b(?:\s*[★☆⭐✭✩]){0,5}\s+([0-9][0-9,]*(?:\.[0-9]+)?\s*[kKmM]?)(?=\s*(?:ratings?|reviews?|AED|SAR|EGP|KWD|OMR|BHD|QAR|د\.إ|ر\.س|$))/gi;
+    let adjacentMatch;
+    while ((adjacentMatch = adjacentRatingPattern.exec(text)) !== null) {
+      const count = parseCompactNumber(adjacentMatch[1]);
+      if (Number.isFinite(count)) {
+        return count;
+      }
+    }
     return undefined;
   }
 
@@ -312,13 +321,19 @@
   }
 
   function findReviewCount(card) {
-    const text = firstText(card, [
-      '[data-qa*="review"]',
-      '[data-testid*="review"]',
-      '[class*="review"]',
-      '[class*="rating"]'
-    ]) || getElementText(card);
-    return parseReviewCountText(text);
+    const candidates = [
+      firstText(card, ['[data-qa*="review"]', '[data-testid*="review"]', '[class*="review"]']),
+      firstText(card, ['[data-qa*="rating"]', '[data-testid*="rating"]', '[class*="rating"]']),
+      getElementText(card)
+    ];
+
+    for (const candidate of candidates) {
+      const reviewCount = parseReviewCountText(candidate);
+      if (reviewCount !== undefined) {
+        return reviewCount;
+      }
+    }
+    return undefined;
   }
 
   function findProductCards(documentRef) {

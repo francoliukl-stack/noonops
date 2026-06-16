@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 - 2026-06-17
+
+- Fixed detail-page heat extraction when noon shows the ratings count as a standalone number next to the score, such as `4.7 23`.
+- Updated review-count parsing to continue scanning the full product/detail text when a rating element only contains the score.
+- Added regression coverage for the Dreamhouse product pattern where heat should resolve to `23 Ratings`.
+- Updated PRD, evaluation set, automated tests, and evaluation report for adjacent rating-count extraction.
+
 ## 0.1.3 - 2026-06-17
 
 - Updated product cards so the highlighted pill follows the active sorting metric instead of always highlighting sales.
