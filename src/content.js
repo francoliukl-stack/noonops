@@ -299,9 +299,8 @@
       const meta = createElement("div", "noon-ops-product-meta");
       const primaryMetric = getPrimaryMetric(product);
       const primary = createElement("span", `noon-ops-pill noon-ops-primary noon-ops-primary-${primaryMetric.type}`, primaryMetric.text);
-      const sales = createElement("span", "noon-ops-pill noon-ops-secondary", formatSalesMetric(product));
-      const price = createElement("span", "noon-ops-pill noon-ops-secondary", product.price === undefined ? "价格未识别" : parser.formatMoney(product));
-      meta.append(primary, sales, price);
+      const secondaryMetrics = getSecondaryMetrics(product, primaryMetric.type).map((metric) => createElement("span", "noon-ops-pill noon-ops-secondary", metric));
+      meta.append(primary, ...secondaryMetrics);
 
       main.append(title, meta);
       item.append(rank, main);
@@ -318,6 +317,24 @@
     }
     const sourceLabel = product.salesSignalSource === "ratings" ? "Ratings" : "销量";
     return `${sourceLabel} ${parser.formatNumber(product.salesSignalCount)}`;
+  }
+
+  function formatHeatMetric(product) {
+    return product.reviewCount === undefined ? "热度未识别" : `热度 ${parser.formatNumber(product.reviewCount)} Ratings`;
+  }
+
+  function formatPriceMetric(product) {
+    return product.price === undefined ? "价格未识别" : parser.formatMoney(product);
+  }
+
+  function getSecondaryMetrics(product, primaryType) {
+    if (primaryType === "sales") {
+      return [formatHeatMetric(product), formatPriceMetric(product)];
+    }
+    if (primaryType === "price") {
+      return [formatSalesMetric(product), formatHeatMetric(product)];
+    }
+    return [formatSalesMetric(product), formatPriceMetric(product)];
   }
 
   function getPrimaryMetric(product) {
@@ -347,7 +364,7 @@
     }
     return {
       type: "heat",
-      text: product.reviewCount === undefined ? "热度未识别" : `热度 ${parser.formatNumber(product.reviewCount)} Ratings`
+      text: formatHeatMetric(product)
     };
   }
 

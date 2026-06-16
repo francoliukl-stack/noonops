@@ -127,6 +127,15 @@
         return count;
       }
     }
+
+    const looseAdjacentRatingPattern = /\b[0-5](?:\.[0-9])?\b(?:\s*[★☆⭐✭✩]){0,5}\s+([1-9][0-9]{0,5})(?!\s*(?:years?|yrs?|year|%|off|discount|AED|SAR|EGP|KWD|OMR|BHD|QAR)\b)/gi;
+    let looseAdjacentMatch;
+    while ((looseAdjacentMatch = looseAdjacentRatingPattern.exec(text)) !== null) {
+      const count = parseCompactNumber(looseAdjacentMatch[1]);
+      if (Number.isFinite(count)) {
+        return count;
+      }
+    }
     return undefined;
   }
 
@@ -320,6 +329,61 @@
     return parseRatingText(ratingText);
   }
 
+  function parseStandaloneCountText(value) {
+    const text = normalizeWhitespace(value);
+    const match = text.match(/^([1-9][0-9]{0,5})(?:\s*(?:ratings?|reviews?))?$/i);
+    if (!match) {
+      return undefined;
+    }
+    return parseCompactNumber(match[1]);
+  }
+
+  function siblingText(element, direction) {
+    if (!element) {
+      return "";
+    }
+    const sibling = direction === "previous" ? element.previousElementSibling : element.nextElementSibling;
+    return getElementText(sibling);
+  }
+
+  function parentText(element) {
+    return getElementText(element && element.parentElement);
+  }
+
+  function findAdjacentReviewCount(card) {
+    if (!card.querySelectorAll) {
+      return undefined;
+    }
+
+    const ratingNodes = Array.from(card.querySelectorAll('[data-qa*="rating"], [data-testid*="rating"], [class*="rating"], [class*="Rating"]'));
+    for (const node of ratingNodes) {
+      const nodeText = getElementText(node);
+      if (parseRatingText(nodeText) === undefined) {
+        continue;
+      }
+
+      const candidates = [
+        parentText(node),
+        siblingText(node, "next"),
+        siblingText(node, "previous"),
+        getElementText(node.parentElement && node.parentElement.nextElementSibling),
+        getElementText(node.parentElement && node.parentElement.previousElementSibling)
+      ];
+
+      for (const candidate of candidates) {
+        const reviewCount = parseReviewCountText(candidate);
+        if (reviewCount !== undefined) {
+          return reviewCount;
+        }
+        const standaloneCount = parseStandaloneCountText(candidate);
+        if (standaloneCount !== undefined) {
+          return standaloneCount;
+        }
+      }
+    }
+    return undefined;
+  }
+
   function findReviewCount(card) {
     const candidates = [
       firstText(card, ['[data-qa*="review"]', '[data-testid*="review"]', '[class*="review"]']),
@@ -333,7 +397,7 @@
         return reviewCount;
       }
     }
-    return undefined;
+    return findAdjacentReviewCount(card);
   }
 
   function findProductCards(documentRef) {
@@ -365,6 +429,22 @@
     return cards;
   }
 
+  function canonicalProductKey(url, title) {
+    if (url) {
+      try {
+        const parsed = new URL(url, globalScope.location && globalScope.location.href);
+        const skuMatch = parsed.pathname.match(/\/([A-Z0-9]{8,})\/p\/?/i);
+        if (skuMatch) {
+          return `sku:${skuMatch[1].toUpperCase()}`;
+        }
+        return `url:${parsed.origin}${parsed.pathname}`.toLowerCase();
+      } catch (_error) {
+        return `url:${String(url).split("?")[0]}`.toLowerCase();
+      }
+    }
+    return `title:${normalizeWhitespace(title).toLowerCase()}`;
+  }
+
   function extractProducts(documentRef, baseUrl) {
     const documentObject = documentRef || globalScope.document;
     const cards = findProductCards(documentObject);
@@ -374,7 +454,7 @@
 
     if (detailProduct) {
       products.push(detailProduct);
-      seenKeys.add(detailProduct.url || detailProduct.title);
+      seenKeys.add(canonicalProductKey(detailProduct.url, detailProduct.title));
     }
 
     cards.forEach((card) => {
@@ -389,7 +469,7 @@
       const reviewCount = findReviewCount(card);
       const originalPrice = findOriginalPrice(card);
       const discountText = findDiscount(card);
-      const key = url || `${title}-${products.length}`;
+      const key = canonicalProductKey(url, title);
 
       if (!title || seenKeys.has(key)) {
         return;
@@ -547,8 +627,10 @@
     parsePriceText,
     parseRatingText,
     parseReviewCountText,
+    parseStandaloneCountText,
     getSalesSignal,
     extractDetailProduct,
+    canonicalProductKey,
     extractProducts,
     sortProducts,
     summarizeProducts,

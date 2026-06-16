@@ -1,9 +1,9 @@
 # Evaluation Report
 
 - Project: Noon Sales Ops Copilot
-- Evaluation set version: 0.1.4
-- Generated at: 2026-06-16T17:11:00.404Z
-- Evaluation cases: 17/17 passed (100%)
+- Evaluation set version: 0.1.5
+- Generated at: 2026-06-16T17:46:53.435Z
+- Evaluation cases: 18/18 passed (100%)
 - Node tests: passed
 - Completion status: COMPLETE
 
@@ -23,7 +23,8 @@
 | SORT-000 | sorting | Default sorting uses Ratings heat instead of sales volume | passed | OK |
 | SORT-001 | sorting | Default sales sorting puts missing sales last | passed | OK |
 | EXPORT-001 | export | CSV and table copy exports include stable business columns | passed | OK |
-| METRIC-001 | interaction | Product cards highlight the active sorting metric and keep sales plus price as secondary indicators | passed | OK |
+| DEDUPE-001 | extraction | Detail page extraction deduplicates product cards by canonical SKU | passed | OK |
+| METRIC-001 | interaction | Product cards highlight the active sorting metric and avoid duplicate secondary indicators | passed | OK |
 | LOCATE-001 | interaction | Product title click locates the current page item instead of opening a new page | passed | OK |
 | AUTO-001 | interaction | Panel auto refreshes when URL or page product DOM changes | passed | OK |
 | INSIGHT-001 | insights | No visible sales produces a data gap insight | passed | OK |
@@ -36,76 +37,82 @@ TAP version 13
 # Subtest: isNoonHost only accepts noon domains
 ok 1 - isNoonHost only accepts noon domains
   ---
-  duration_ms: 0.722084
+  duration_ms: 0.733541
   type: 'test'
   ...
 # Subtest: parseSalesText supports common sales formats
 ok 2 - parseSalesText supports common sales formats
   ---
-  duration_ms: 0.339375
+  duration_ms: 0.336792
   type: 'test'
   ...
 # Subtest: parseReviewCountText supports noon Ratings text
 ok 3 - parseReviewCountText supports noon Ratings text
   ---
-  duration_ms: 0.160625
+  duration_ms: 0.404667
   type: 'test'
   ...
 # Subtest: sales signal uses sold first and ratings as fallback
 ok 4 - sales signal uses sold first and ratings as fallback
   ---
-  duration_ms: 0.584333
+  duration_ms: 0.538583
   type: 'test'
   ...
 # Subtest: extractDetailProduct reads noon detail page sales from body text
 ok 5 - extractDetailProduct reads noon detail page sales from body text
   ---
-  duration_ms: 0.528083
+  duration_ms: 0.611583
   type: 'test'
   ...
 # Subtest: extractDetailProduct falls back to Ratings as sales signal
 ok 6 - extractDetailProduct falls back to Ratings as sales signal
   ---
-  duration_ms: 0.136875
+  duration_ms: 0.139125
   type: 'test'
   ...
 # Subtest: extractDetailProduct reads adjacent detail page rating count when rating node omits label
 ok 7 - extractDetailProduct reads adjacent detail page rating count when rating node omits label
   ---
-  duration_ms: 0.10325
+  duration_ms: 0.129791
+  type: 'test'
+  ...
+# Subtest: extractProducts deduplicates detail page product card with the same SKU
+ok 8 - extractProducts deduplicates detail page product card with the same SKU
+  ---
+  duration_ms: 0.511167
   type: 'test'
   ...
 # Subtest: parsePriceText extracts currency and price
-ok 8 - parsePriceText extracts currency and price
+ok 9 - parsePriceText extracts currency and price
   ---
-  duration_ms: 0.038916
+  duration_ms: 0.234875
   type: 'test'
   ...
 # Subtest: default sort uses Ratings heat before sales signal
-ok 9 - default sort uses Ratings heat before sales signal
+ok 10 - default sort uses Ratings heat before sales signal
   ---
-  duration_ms: 0.259166
+  duration_ms: 0.287792
   type: 'test'
   ...
 # Subtest: sales sort puts missing sales last
-ok 10 - sales sort puts missing sales last
+ok 11 - sales sort puts missing sales last
   ---
-  duration_ms: 0.26925
+  duration_ms: 0.085666
   type: 'test'
   ...
 # Subtest: exports tsv and csv with stable columns
-ok 11 - exports tsv and csv with stable columns
+ok 12 - exports tsv and csv with stable columns
   ---
-  duration_ms: 0.249208
+  duration_ms: 0.218667
   type: 'test'
   ...
-1..11
-# tests 11
+1..12
+# tests 12
 # suites 0
-# pass 11
+# pass 12
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 78.254542
+# duration_ms 73.921875
 ```

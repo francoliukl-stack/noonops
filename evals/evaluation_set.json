@@ -1,5 +1,5 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.5",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.4"
+      "version": "0.1.5"
     },
     {
       "id": "PRD-001",
@@ -115,6 +115,10 @@
         },
         {
           "input": "4.7 23 AED 129",
+          "expected": 23
+        },
+        {
+          "input": "4.7 ★★★★★ 23 | Best Seller",
           "expected": 23
         }
       ]
@@ -252,13 +256,26 @@
       ]
     },
     {
+      "id": "DEDUPE-001",
+      "category": "extraction",
+      "title": "Detail page extraction deduplicates product cards by canonical SKU",
+      "type": "file_contains",
+      "file": "src/parser.js",
+      "contains": [
+        "canonicalProductKey",
+        "sku:",
+        "seenKeys.add(canonicalProductKey"
+      ]
+    },
+    {
       "id": "METRIC-001",
       "category": "interaction",
-      "title": "Product cards highlight the active sorting metric and keep sales plus price as secondary indicators",
+      "title": "Product cards highlight the active sorting metric and avoid duplicate secondary indicators",
       "type": "file_contains",
       "file": "src/content.js",
       "contains": [
         "getPrimaryMetric",
+        "getSecondaryMetrics",
         "noon-ops-primary",
         "noon-ops-secondary",
         "state.sortMode === \"price_asc\"",

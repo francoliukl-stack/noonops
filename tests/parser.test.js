@@ -2,14 +2,23 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const parser = require("../src/parser.js");
 
-function fakeNode(textContent, attrs = {}, selectorMap = {}) {
+function fakeNode(textContent, attrs = {}, selectorMap = {}, selectorAllMap = {}) {
   return {
     textContent,
     querySelector(selector) {
       return selectorMap[selector] || null;
     },
+    querySelectorAll(selector) {
+      return selectorAllMap[selector] || [];
+    },
     getAttribute(name) {
       return attrs[name] || "";
+    },
+    matches() {
+      return Boolean(attrs.matches);
+    },
+    closest() {
+      return attrs.closest || null;
     }
   };
 }
@@ -33,6 +42,7 @@ test("parseReviewCountText supports noon Ratings text", () => {
   assert.equal(parser.parseReviewCountText("40 Ratings"), 40);
   assert.equal(parser.parseReviewCountText("3.4 (62)"), 62);
   assert.equal(parser.parseReviewCountText("4.7 23 AED 129"), 23);
+  assert.equal(parser.parseReviewCountText("4.7 ★★★★★ 23 | Best Seller"), 23);
 });
 
 test("sales signal uses sold first and ratings as fallback", () => {
@@ -110,6 +120,44 @@ test("extractDetailProduct reads adjacent detail page rating count when rating n
   assert.equal(product.reviewCount, 23);
   assert.equal(product.salesSignalCount, 23);
   assert.equal(product.salesSignalSource, "ratings");
+});
+
+test("extractProducts deduplicates detail page product card with the same SKU", () => {
+  const cardLink = fakeNode("Dreamhouse Playset Pool Party Doll House", {
+    href: "/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/?o=abc",
+    matches: true
+  });
+  const card = fakeNode("Dreamhouse Playset Pool Party Doll House 4.7 23 AED 129", { matches: false }, {
+    'a[href]': cardLink
+  });
+  cardLink.closest = () => card;
+  const body = fakeNode("Dreamhouse Playset Pool Party Doll House 4.7 ★★★★★ 23 AED 129.00", {}, {
+    '[data-qa*="price"]': fakeNode("AED 129.00")
+  });
+  const documentLike = fakeNode("", {}, {
+    h1: fakeNode("Dreamhouse Playset Pool Party Doll House")
+  }, {
+    '[data-qa*="product"]': [],
+    '[data-testid*="product"]': [],
+    '[class*="productContainer"]': [],
+    '[class*="ProductBox"]': [],
+    '[class*="productBox"]': [],
+    '[class*="ProductCard"]': [],
+    '[class*="product-card"]': [],
+    'a[href*="/p/"]': [cardLink],
+    'a[href*="/uae-en/"]': [cardLink],
+    'a[href*="/saudi-en/"]': [],
+    'a[href*="/egypt-en/"]': []
+  });
+  documentLike.body = body;
+  documentLike.location = {
+    href: "https://www.noon.com/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/?o=z779"
+  };
+
+  const products = parser.extractProducts(documentLike, documentLike.location.href);
+
+  assert.equal(products.length, 1);
+  assert.equal(products[0].reviewCount, 23);
 });
 
 test("parsePriceText extracts currency and price", () => {

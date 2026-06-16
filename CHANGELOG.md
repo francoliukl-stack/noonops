@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5 - 2026-06-17
+
+- Fixed heat extraction for delayed or split detail-page ratings where noon renders the score and rating count as separate nearby DOM nodes.
+- Added broader support for patterns like `4.7 ★★★★★ 23`.
+- Deduplicated detail-page extraction by canonical product SKU to prevent repeated product rows when switching to sales-metric sorting.
+- Avoided duplicated metric pills when the selected primary metric is also one of the default secondary indicators.
+- Updated PRD, evaluation set, automated tests, and evaluation report for split-rating extraction and SKU deduplication.
+
 ## 0.1.4 - 2026-06-17
 
 - Fixed detail-page heat extraction when noon shows the ratings count as a standalone number next to the score, such as `4.7 23`.
