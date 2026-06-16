@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -7,6 +7,13 @@
     "developmentCompleteOnlyWhenAllPassed": true
   },
   "cases": [
+    {
+      "id": "VERSION-001",
+      "category": "release_hygiene",
+      "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
+      "type": "version_alignment",
+      "version": "0.1.1"
+    },
     {
       "id": "PRD-001",
       "category": "prd_traceability",

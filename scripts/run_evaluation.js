@@ -19,8 +19,24 @@ function normalizeUndefined(value) {
   return value === undefined ? null : value;
 }
 
+function latestChangelogVersion() {
+  const changelog = readText("CHANGELOG.md");
+  const match = changelog.match(/^##\s+([0-9]+\.[0-9]+\.[0-9]+)\s+-\s+\d{4}-\d{2}-\d{2}/m);
+  return match ? match[1] : undefined;
+}
+
 function runCase(testCase) {
   switch (testCase.type) {
+    case "version_alignment": {
+      const manifest = readJson("manifest.json");
+      const packageJson = readJson("package.json");
+      const evaluationSet = readJson("evals/evaluation_set.json");
+      assert.equal(manifest.version, testCase.version, "manifest.json version mismatch");
+      assert.equal(packageJson.version, testCase.version, "package.json version mismatch");
+      assert.equal(evaluationSet.version, testCase.version, "evaluation set version mismatch");
+      assert.equal(latestChangelogVersion(), testCase.version, "CHANGELOG latest version mismatch");
+      return;
+    }
     case "file_contains": {
       const text = readText(testCase.file);
       for (const expected of testCase.contains) {
