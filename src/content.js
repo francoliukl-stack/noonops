@@ -1,7 +1,8 @@
 (function initContent(globalScope) {
   const PANEL_ID = "noon-ops-copilot-panel";
   const SORT_OPTIONS = [
-    ["sales_desc", "销量高到低"],
+    ["heat_desc", "热度高到低"],
+    ["sales_desc", "销量指标高到低"],
     ["price_asc", "价格低到高"],
     ["price_desc", "价格高到低"],
     ["rating_desc", "评分高到低"],
@@ -16,7 +17,7 @@
   const parser = globalScope.NoonOpsParser;
   const insightsApi = globalScope.NoonOpsInsights;
   let state = {
-    sortMode: "sales_desc",
+    sortMode: "heat_desc",
     products: [],
     sortedProducts: [],
     insights: [],
@@ -292,8 +293,8 @@
       const main = createElement("div", "noon-ops-product-main");
       const title = createElement("a", "noon-ops-product-title", product.title);
       title.href = product.url || "#";
-      title.target = "_blank";
-      title.rel = "noreferrer";
+      title.dataset.action = "locate-product";
+      title.dataset.productId = product.id;
 
       const meta = createElement("div", "noon-ops-product-meta");
       const sourceLabel = product.salesSignalSource === "ratings" ? "Ratings" : "销量";
@@ -372,7 +373,29 @@
       copyResults().catch(() => flashStatus("复制失败，请检查浏览器权限"));
     } else if (action === "export") {
       exportCsv();
+    } else if (action === "locate-product") {
+      event.preventDefault();
+      locateProduct(button.dataset.productId);
     }
+  }
+
+  function locateProduct(productId) {
+    const product = state.products.find((item) => item.id === productId);
+    if (!product || !product.sourceElement || !product.sourceElement.scrollIntoView) {
+      flashStatus("当前页面暂时无法定位该商品");
+      return;
+    }
+
+    product.sourceElement.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest"
+    });
+    product.sourceElement.classList.add("noon-ops-source-highlight");
+    setTimeout(() => {
+      product.sourceElement.classList.remove("noon-ops-source-highlight");
+    }, 1800);
+    flashStatus("已定位到页面中的商品");
   }
 
   function handlePanelChange(event) {

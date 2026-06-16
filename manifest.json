@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Noon Sales Ops Copilot",
-  "description": "Sort visible noon products by sales and surface local sales-ops suggestions.",
-  "version": "0.1.1",
+  "description": "Sort visible noon products by heat and surface local sales-ops suggestions.",
+  "version": "0.1.2",
   "action": {
     "default_title": "Noon Sales Ops Copilot"
   },

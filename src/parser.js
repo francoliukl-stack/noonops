@@ -259,7 +259,8 @@
       salesCount: salesInfo.salesCount,
       rating,
       reviewCount,
-      pagePosition: 1
+      pagePosition: 1,
+      sourceElement: sourceRoot
     };
     const salesSignal = getSalesSignal(product);
     product.salesSignalCount = salesSignal.count;
@@ -393,7 +394,8 @@
         salesCount: salesInfo.salesCount,
         rating,
         reviewCount,
-        pagePosition: products.length + 1
+        pagePosition: products.length + 1,
+        sourceElement: card
       };
       const salesSignal = getSalesSignal(product);
       product.salesSignalCount = salesSignal.count;
@@ -406,7 +408,7 @@
   }
 
   function sortProducts(products, sortMode) {
-    const mode = sortMode || "sales_desc";
+    const mode = sortMode || "heat_desc";
     const copy = [...products];
     const missingLast = (field, direction) => (a, b) => {
       const av = a[field];
@@ -434,10 +436,13 @@
     if (mode === "rating_desc") {
       return copy.sort(missingLast("rating", "desc"));
     }
+    if (mode === "sales_desc") {
+      return copy.sort(missingLast("salesSignalCount", "desc"));
+    }
     if (mode === "page_order") {
       return copy.sort((a, b) => a.pagePosition - b.pagePosition);
     }
-    return copy.sort(missingLast("salesSignalCount", "desc"));
+    return copy.sort(missingLast("reviewCount", "desc"));
   }
 
   function summarizeProducts(products) {

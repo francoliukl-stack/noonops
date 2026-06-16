@@ -102,7 +102,16 @@ test("parsePriceText extracts currency and price", () => {
   });
 });
 
-test("sortProducts puts missing sales last", () => {
+test("default sort uses Ratings heat before sales signal", () => {
+  const products = [
+    { id: "a", title: "A", reviewCount: 40, salesSignalCount: 860, pagePosition: 1 },
+    { id: "b", title: "B", reviewCount: 62, salesSignalCount: 100, pagePosition: 2 },
+    { id: "c", title: "C", reviewCount: undefined, salesSignalCount: 1200, pagePosition: 3 }
+  ];
+  assert.deepEqual(parser.sortProducts(products).map((product) => product.id), ["b", "a", "c"]);
+});
+
+test("sales sort puts missing sales last", () => {
   const products = [
     { id: "a", title: "A", salesSignalCount: undefined, pagePosition: 1 },
     { id: "b", title: "B", salesSignalCount: 20, pagePosition: 2 },

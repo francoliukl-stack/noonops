@@ -1,5 +1,5 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "id": "PRD-001",
@@ -168,6 +168,39 @@
       ]
     },
     {
+      "id": "SORT-000",
+      "category": "sorting",
+      "title": "Default sorting uses Ratings heat instead of sales volume",
+      "type": "sort",
+      "products": [
+        {
+          "id": "a",
+          "title": "A",
+          "reviewCount": 40,
+          "salesSignalCount": 860,
+          "pagePosition": 1
+        },
+        {
+          "id": "b",
+          "title": "B",
+          "reviewCount": 62,
+          "salesSignalCount": 100,
+          "pagePosition": 2
+        },
+        {
+          "id": "c",
+          "title": "C",
+          "salesSignalCount": 1200,
+          "pagePosition": 3
+        }
+      ],
+      "expectedOrder": [
+        "b",
+        "a",
+        "c"
+      ]
+    },
+    {
       "id": "SORT-001",
       "category": "sorting",
       "title": "Default sales sorting puts missing sales last",
@@ -212,6 +245,18 @@
         "评分",
         "评论数",
         "商品链接"
+      ]
+    },
+    {
+      "id": "LOCATE-001",
+      "category": "interaction",
+      "title": "Product title click locates the current page item instead of opening a new page",
+      "type": "file_contains",
+      "file": "src/content.js",
+      "contains": [
+        "locateProduct",
+        "scrollIntoView",
+        "noon-ops-source-highlight"
       ]
     },
     {

@@ -301,6 +301,13 @@
   transform: translateY(0);
 }
 
+.noon-ops-source-highlight {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.22) !important;
+  transition: outline-color 160ms ease, box-shadow 160ms ease;
+}
+
 @media (max-width: 520px) {
   #noon-ops-copilot-panel {
     width: 100vw;
