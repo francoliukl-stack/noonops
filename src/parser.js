@@ -8,14 +8,12 @@
     '[class*="productBox"]',
     '[class*="ProductCard"]',
     '[class*="product-card"]',
-    'a[href*="/p/"]',
-    'a[href*="/uae-en/"]',
-    'a[href*="/saudi-en/"]',
-    'a[href*="/egypt-en/"]'
+    'a[href*="/p/"]'
   ];
   const AMOUNT_RE = /([0-9]+(?:[, ][0-9]{3})*(?:\.[0-9]{1,2})?)/;
   const PRICE_RE = /\b(?:AED|SAR|EGP|KWD|OMR|BHD|QAR|د\.إ|ر\.س|฿)?\s*([0-9]+(?:[, ][0-9]{3})*(?:\.[0-9]{1,2})?)\b/i;
   const CURRENCY_RE = /\b(AED|SAR|EGP|KWD|OMR|BHD|QAR)\b|د\.إ|ر\.س|฿/i;
+  const NON_PRODUCT_TITLE_RE = /^(add|cart|wishlist|share|search|filter|sort|menu|login|sign in|ratings?|reviews?|best seller|sponsored|global|free delivery|delivery|express|view all|see all|more|next|previous)$/i;
 
   function isNoonHost(hostname) {
     return NOON_HOST_RE.test(String(hostname || ""));
@@ -178,6 +176,10 @@
     } catch (_error) {
       return href;
     }
+  }
+
+  function isProductHref(href) {
+    return /\/p\/?/i.test(String(href || ""));
   }
 
   function getElementText(element) {
@@ -424,7 +426,7 @@
         const link = card.matches("a[href]") ? card : card.querySelector('a[href]');
         const href = link ? link.getAttribute("href") : "";
         const text = getElementText(card);
-        const hasProductSignal = href || text.match(/\b(AED|SAR|EGP|sold|rating|reviews?)\b/i);
+        const hasProductSignal = isProductHref(href) || text.match(/\b(AED|SAR|EGP|sold|rating|ratings?|reviews?)\b/i);
         if (!hasProductSignal || text.length < 5) {
           continue;
         }
@@ -435,6 +437,23 @@
     }
 
     return cards;
+  }
+
+  function isLikelyProduct(product) {
+    const title = normalizeWhitespace(product && product.title);
+    if (!title || title.length < 8 || NON_PRODUCT_TITLE_RE.test(title)) {
+      return false;
+    }
+
+    const words = normalizeKeyText(title).split(/\s+/).filter(Boolean);
+    if (words.length < 2 && title.length < 16) {
+      return false;
+    }
+
+    const hasProductUrl = isProductHref(product.url);
+    const hasCommercialSignal = Number.isFinite(product.price) || Number.isFinite(product.salesCount) || Number.isFinite(product.reviewCount);
+    const hasMerchandisingSignal = Number.isFinite(product.rating) || Boolean(product.imageUrl) || Boolean(product.discountText);
+    return hasProductUrl || (hasCommercialSignal && hasMerchandisingSignal) || (Number.isFinite(product.price) && title.length >= 12);
   }
 
   function canonicalProductKey(url, title) {
@@ -567,6 +586,9 @@
       product.salesSignalCount = salesSignal.count;
       product.salesSignalText = salesSignal.text;
       product.salesSignalSource = salesSignal.source;
+      if (!isLikelyProduct(product)) {
+        return;
+      }
       addUniqueProduct(products, keyIndex, product);
     });
 
@@ -700,7 +722,9 @@
     parseRatingText,
     parseReviewCountText,
     parseStandaloneCountText,
+    isProductHref,
     getSalesSignal,
+    isLikelyProduct,
     extractDetailProduct,
     canonicalProductKey,
     productIdentityKeys,

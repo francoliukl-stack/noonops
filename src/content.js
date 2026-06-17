@@ -8,6 +8,7 @@
     ["rating_desc", "评分高到低"],
     ["page_order", "页面原始顺序"]
   ];
+  const PRODUCT_CHANGE_RE = /\b(AED|SAR|EGP|KWD|OMR|BHD|QAR|ratings?|reviews?|sold|Best Seller)\b|\/p\/?/i;
 
   if (globalScope.__NOON_OPS_COPILOT_READY__) {
     return;
@@ -23,9 +24,15 @@
     insights: [],
     supported: false,
     lastSignature: "",
-    lastAnalyzedUrl: ""
+    lastAnalyzedUrl: "",
+    refreshStatus: "idle",
+    refreshMessage: "尚未刷新",
+    lastUpdatedAt: "",
+    lastRefreshCount: 0
   };
   let refreshTimer;
+  let refreshRunId = 0;
+  let locationPollTimer;
   let observer;
 
   function createElement(tag, className, text) {
@@ -77,7 +84,7 @@
     if (isVisible) {
       panel.classList.remove("is-collapsed");
       startAutoRefresh();
-      analyzeAndRender();
+      requestRefresh("manual", { force: true });
     } else {
       stopAutoRefresh();
     }
@@ -98,8 +105,9 @@
     }
   }
 
-  function analyzeAndRender() {
+  function analyzePage() {
     const hostname = globalScope.location.hostname;
+    const previousUrl = state.lastAnalyzedUrl;
     state.supported = parser.isNoonHost(hostname);
     state.lastAnalyzedUrl = globalScope.location.href;
     if (!state.supported) {
@@ -110,17 +118,83 @@
         title: "不支持当前页面",
         message: "请在 noon 商品列表、搜索结果或店铺商品页中打开插件。"
       }];
-      render();
-      return;
+      return {
+        products: [],
+        signature: buildPageSignature([]),
+        changed: true
+      };
     }
 
     const products = parser.extractProducts(document, globalScope.location.href);
     const sortedProducts = parser.sortProducts(products, state.sortMode);
+    const signature = buildPageSignature(products);
+    const changed = signature !== state.lastSignature || globalScope.location.href !== previousUrl;
     state.products = products;
     state.sortedProducts = sortedProducts;
     state.insights = insightsApi.createInsights(products);
-    state.lastSignature = buildPageSignature(products);
+    state.lastSignature = signature;
+    return { products, signature, changed };
+  }
+
+  function analyzeAndRender() {
+    analyzePage();
     render();
+  }
+
+  function requestRefresh(reason, options = {}) {
+    const panel = getPanel();
+    if (!panel || !panel.classList.contains("is-visible")) {
+      return;
+    }
+
+    const runId = ++refreshRunId;
+    const isNavigation = reason === "url" || reason === "click";
+    state.supported = parser.isNoonHost(globalScope.location.hostname);
+    state.refreshStatus = isNavigation ? "waiting" : "refreshing";
+    state.refreshMessage = getRefreshStartMessage(reason);
+    render();
+
+    const attempts = options.attempts || (isNavigation ? 8 : options.force ? 5 : 4);
+    const interval = options.interval || (isNavigation ? 240 : 160);
+    runRefreshAttempt(runId, reason, attempts, interval, 1);
+  }
+
+  function runRefreshAttempt(runId, reason, attempts, interval, attempt) {
+    if (runId !== refreshRunId) {
+      return;
+    }
+
+    setTimeout(() => {
+      if (runId !== refreshRunId) {
+        return;
+      }
+
+      state.refreshStatus = "refreshing";
+      state.refreshMessage = attempt > 1 ? `正在等待页面数据加载 (${attempt}/${attempts})` : "正在读取当前页面商品";
+      render();
+
+      const beforeSignature = state.lastSignature;
+      const result = analyzePage();
+      const hasProducts = result.products.length > 0;
+      const changed = result.signature !== beforeSignature;
+      const minAttempts = reason === "url" || reason === "click" ? 3 : 1;
+      const shouldFinish = (hasProducts && attempt >= minAttempts) || attempt >= attempts || (!parser.isNoonHost(globalScope.location.hostname));
+
+      if (!shouldFinish && (reason === "url" || reason === "click" || reason === "dom")) {
+        runRefreshAttempt(runId, reason, attempts, interval, attempt + 1);
+        return;
+      }
+
+      state.refreshStatus = "complete";
+      state.lastUpdatedAt = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      state.lastRefreshCount = result.products.length;
+      state.refreshMessage = buildRefreshDoneMessage(reason, result.products.length, changed);
+      render();
+    }, attempt === 1 ? 40 : interval);
   }
 
   function buildPageSignature(products) {
@@ -144,27 +218,14 @@
 
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
-      if (!state.supported && !parser.isNoonHost(globalScope.location.hostname)) {
-        return;
-      }
-      const products = parser.extractProducts(document, globalScope.location.href);
-      const signature = buildPageSignature(products);
-      if (signature !== state.lastSignature || globalScope.location.href !== state.lastAnalyzedUrl) {
-        analyzeAndRender();
-        flashStatus(reason === "url" ? "页面已切换，已自动刷新" : "页面商品已更新，已自动刷新");
-      }
-    }, 450);
+      requestRefresh(reason, { attempts: reason === "url" || reason === "click" ? 8 : 3 });
+    }, reason === "url" || reason === "click" ? 60 : 180);
   }
 
   function startAutoRefresh() {
     if (!observer) {
       observer = new MutationObserver((mutations) => {
-        const hasRelevantChange = mutations.some((mutation) => {
-          if (mutation.target && mutation.target.closest && mutation.target.closest(`#${PANEL_ID}`)) {
-            return false;
-          }
-          return mutation.addedNodes.length || mutation.removedNodes.length || mutation.type === "characterData";
-        });
+        const hasRelevantChange = mutations.some(mutationLooksRelevant);
         if (hasRelevantChange) {
           scheduleAutoRefresh("dom");
         }
@@ -176,10 +237,38 @@
       });
     }
     patchHistory();
+    startLocationPolling();
+  }
+
+  function mutationLooksRelevant(mutation) {
+    if (mutation.target && mutation.target.closest && mutation.target.closest(`#${PANEL_ID}`)) {
+      return false;
+    }
+    if (mutation.type === "characterData") {
+      return PRODUCT_CHANGE_RE.test(mutation.target && mutation.target.textContent || "");
+    }
+
+    const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+    if (!changedNodes.length) {
+      return false;
+    }
+    return changedNodes.some((node) => {
+      if (node.closest && node.closest(`#${PANEL_ID}`)) {
+        return false;
+      }
+      const href = node.getAttribute && node.getAttribute("href");
+      const text = node.textContent || "";
+      if (PRODUCT_CHANGE_RE.test(href || "") || PRODUCT_CHANGE_RE.test(text)) {
+        return true;
+      }
+      return Boolean(node.querySelector && node.querySelector('a[href*="/p/"], [data-qa*="product"], [data-testid*="product"], [class*="ProductCard"], [class*="product-card"]'));
+    });
   }
 
   function stopAutoRefresh() {
     clearTimeout(refreshTimer);
+    clearInterval(locationPollTimer);
+    locationPollTimer = undefined;
     if (observer) {
       observer.disconnect();
       observer = undefined;
@@ -197,6 +286,7 @@
     }
 
     body.appendChild(renderToolbar());
+    body.appendChild(renderRefreshStatus());
     body.appendChild(renderSummary());
     body.appendChild(renderInsights());
     body.appendChild(renderProductList());
@@ -224,6 +314,8 @@
     const refresh = createElement("button", "noon-ops-button", "刷新");
     refresh.type = "button";
     refresh.dataset.action = "refresh";
+    refresh.disabled = state.refreshStatus === "refreshing" || state.refreshStatus === "waiting";
+    refresh.textContent = state.refreshStatus === "refreshing" || state.refreshStatus === "waiting" ? "刷新中" : "刷新";
     const copy = createElement("button", "noon-ops-button", "复制");
     copy.type = "button";
     copy.dataset.action = "copy";
@@ -233,6 +325,16 @@
 
     toolbar.append(select, refresh, copy, exportButton);
     return toolbar;
+  }
+
+  function renderRefreshStatus() {
+    const wrapper = createElement("div", `noon-ops-refresh noon-ops-refresh-${state.refreshStatus}`);
+    const dot = createElement("span", "noon-ops-refresh-dot");
+    const message = createElement("span", "noon-ops-refresh-message", state.refreshMessage);
+    const metaText = state.lastUpdatedAt ? `更新于 ${state.lastUpdatedAt} · ${state.lastRefreshCount} 件商品` : "等待首次刷新";
+    const meta = createElement("span", "noon-ops-refresh-meta", metaText);
+    wrapper.append(dot, message, meta);
+    return wrapper;
   }
 
   function renderSummary() {
@@ -424,7 +526,7 @@
     } else if (action === "collapse") {
       collapsePanel();
     } else if (action === "refresh") {
-      analyzeAndRender();
+      requestRefresh("manual", { force: true, attempts: 5 });
     } else if (action === "copy") {
       copyResults().catch(() => flashStatus("复制失败，请检查浏览器权限"));
     } else if (action === "export") {
@@ -485,6 +587,52 @@
 
     globalScope.addEventListener("popstate", () => scheduleAutoRefresh("url"));
     globalScope.addEventListener("hashchange", () => scheduleAutoRefresh("url"));
+    globalScope.addEventListener("click", (event) => {
+      const link = event.target && event.target.closest && event.target.closest("a[href]");
+      if (link && parser.isNoonHost(globalScope.location.hostname)) {
+        scheduleAutoRefresh("click");
+      }
+    }, true);
+  }
+
+  function startLocationPolling() {
+    if (locationPollTimer) {
+      return;
+    }
+    let lastHref = globalScope.location.href;
+    locationPollTimer = setInterval(() => {
+      const currentHref = globalScope.location.href;
+      if (currentHref !== lastHref) {
+        lastHref = currentHref;
+        scheduleAutoRefresh("url");
+      }
+    }, 300);
+  }
+
+  function getRefreshStartMessage(reason) {
+    if (reason === "url" || reason === "click") {
+      return "页面已变化，等待商品数据加载";
+    }
+    if (reason === "dom") {
+      return "检测到页面内容变化，正在更新";
+    }
+    return "正在刷新商品排序";
+  }
+
+  function buildRefreshDoneMessage(reason, count, changed) {
+    if (!state.supported) {
+      return "当前页面不支持分析";
+    }
+    if (count === 0) {
+      return "刷新完成，未识别到商品";
+    }
+    if (reason === "manual") {
+      return `刷新完成，已识别 ${count} 件商品`;
+    }
+    if (!changed) {
+      return `已检查，当前仍为 ${count} 件商品`;
+    }
+    return `已自动刷新，识别 ${count} 件商品`;
   }
 
   chrome.runtime.onMessage.addListener((message) => {

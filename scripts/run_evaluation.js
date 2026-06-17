@@ -97,6 +97,12 @@ function runCase(testCase) {
       assert.equal(products.length, testCase.expectedCount);
       return;
     }
+    case "product_filter": {
+      for (const sample of testCase.samples) {
+        assert.equal(parser.isLikelyProduct(sample.product), sample.expected, sample.title || sample.product.title);
+      }
+      return;
+    }
     case "export_columns": {
       const sample = [{
         id: "p1",

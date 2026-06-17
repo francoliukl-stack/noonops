@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 - 2026-06-17
+
+- Improved refresh interaction with visible waiting, reading, and completion states plus last update time and recognized product count.
+- Added faster automatic refresh after noon SPA navigation, browser navigation, hash changes, link clicks, and URL polling, with retry attempts while product data is still rendering.
+- Reduced unnecessary refresh work by filtering DOM changes to product-related signals and ignoring the extension panel itself.
+- Added product-candidate filtering so navigation, merchandising, promotion, and utility blocks do not enter the sorted product list.
+- Added regression tests and release-gate evaluation for non-product filtering and refreshed the PRD traceability.
+
 ## 0.1.6 - 2026-06-17
 
 - Strengthened product deduplication across list and detail pages using canonical SKU, normalized title, title plus price, and image identity.
