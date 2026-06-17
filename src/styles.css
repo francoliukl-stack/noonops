@@ -30,6 +30,27 @@
   transform: translateX(calc(100% - 44px));
 }
 
+#noon-ops-copilot-panel.is-locating {
+  box-shadow: -4px 0 16px rgba(23, 92, 211, 0.16);
+}
+
+#noon-ops-copilot-panel.is-locating::before {
+  position: absolute;
+  top: 84px;
+  left: 7px;
+  width: 30px;
+  padding: 8px 0;
+  color: #175cd3;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.1;
+  text-align: center;
+  content: "定位";
+}
+
 .noon-ops-header {
   display: flex;
   align-items: center;

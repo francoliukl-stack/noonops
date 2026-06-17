@@ -652,16 +652,40 @@
       return;
     }
 
-    product.sourceElement.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-      inline: "nearest"
+    temporarilyRevealPageForLocate();
+    requestAnimationFrame(() => {
+      product.sourceElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center"
+      });
     });
     product.sourceElement.classList.add("noon-ops-source-highlight");
     setTimeout(() => {
       product.sourceElement.classList.remove("noon-ops-source-highlight");
-    }, 1800);
-    flashStatus("已定位到页面中的商品");
+    }, 2600);
+    flashStatus("已收起浮窗并定位商品");
+  }
+
+  function temporarilyRevealPageForLocate() {
+    const panel = getPanel();
+    if (!panel) {
+      return;
+    }
+    const wasCollapsed = panel.classList.contains("is-collapsed");
+    const locateToken = String(Date.now());
+    panel.dataset.locateToken = locateToken;
+    panel.classList.add("is-collapsed", "is-locating");
+    setTimeout(() => {
+      if (panel.dataset.locateToken !== locateToken) {
+        return;
+      }
+      panel.classList.remove("is-locating");
+      delete panel.dataset.locateToken;
+      if (!wasCollapsed) {
+        panel.classList.remove("is-collapsed");
+      }
+    }, 3200);
   }
 
   function handlePanelChange(event) {

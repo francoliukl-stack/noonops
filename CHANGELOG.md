@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.9 - 2026-06-17
+
+- Added a locating view mode: clicking a product title temporarily collapses the floating panel before scrolling to the product.
+- Changed product location scrolling to center the target horizontally and vertically so the highlighted item is not hidden under the panel.
+- Preserved the user's previous collapsed/expanded panel state after the temporary locating view ends.
+- Added PRD and release-gate coverage for the locate interaction so future releases keep the panel from covering the target product.
+
 ## 0.1.8 - 2026-06-17
 
 - Reworked refresh into a progressive stable-loading flow that clears stale page results after navigation and waits for consecutive stable reads before marking refresh complete.
