@@ -659,12 +659,53 @@
         block: "center",
         inline: "center"
       });
+      scheduleLocateVisibilityChecks(product.sourceElement);
     });
     product.sourceElement.classList.add("noon-ops-source-highlight");
     setTimeout(() => {
       product.sourceElement.classList.remove("noon-ops-source-highlight");
     }, 2600);
     flashStatus("已收起浮窗并定位商品");
+  }
+
+  function scheduleLocateVisibilityChecks(element) {
+    [260, 720].forEach((delay) => {
+      setTimeout(() => adjustLocatedProductVisibility(element), delay);
+    });
+  }
+
+  function adjustLocatedProductVisibility(element) {
+    const panel = getPanel();
+    if (!element || !element.getBoundingClientRect || !panel || !panel.getBoundingClientRect) {
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    const margin = 18;
+    const safeRight = Math.min(globalScope.innerWidth - margin, panelRect.left - margin);
+    let left = 0;
+    let top = 0;
+
+    if (rect.right > safeRight) {
+      left = Math.ceil(rect.right - safeRight);
+    } else if (rect.left < margin) {
+      left = Math.floor(rect.left - margin);
+    }
+
+    if (rect.bottom > globalScope.innerHeight - margin) {
+      top = Math.ceil(rect.bottom - globalScope.innerHeight + margin);
+    } else if (rect.top < margin) {
+      top = Math.floor(rect.top - margin);
+    }
+
+    if (left || top) {
+      globalScope.scrollBy({
+        left,
+        top,
+        behavior: "smooth"
+      });
+    }
   }
 
   function temporarilyRevealPageForLocate() {

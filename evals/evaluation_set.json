@@ -1,5 +1,5 @@
 {
-  "version": "0.1.9",
+  "version": "0.1.10",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.9"
+      "version": "0.1.10"
     },
     {
       "id": "PRD-001",
@@ -360,8 +360,11 @@
       "contains": [
         "locateProduct",
         "temporarilyRevealPageForLocate",
+        "scheduleLocateVisibilityChecks",
+        "adjustLocatedProductVisibility",
         "is-locating",
         "inline: \"center\"",
+        "scrollBy",
         "scrollIntoView",
         "noon-ops-source-highlight"
       ]

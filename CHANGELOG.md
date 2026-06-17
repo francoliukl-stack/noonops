@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.10 - 2026-06-17
+
+- Added post-scroll visibility checks for product locating so the target is nudged away from the panel and viewport edges if it is still partially hidden.
+- Kept the temporary locating panel collapse, then layered in smooth horizontal and vertical micro-adjustment for unusual page layouts.
+- Updated PRD and release-gate coverage for locate visibility correction.
+
 ## 0.1.9 - 2026-06-17
 
 - Added a locating view mode: clicking a product title temporarily collapses the floating panel before scrolling to the product.

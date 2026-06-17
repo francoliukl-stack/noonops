@@ -1,6 +1,6 @@
 {
   "name": "noon-sales-ops-copilot",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "description": "Chrome extension for noon sales operations assistance.",
   "scripts": {
