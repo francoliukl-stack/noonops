@@ -88,6 +88,15 @@ function runCase(testCase) {
       assert.deepEqual(sorted, testCase.expectedOrder);
       return;
     }
+    case "dedupe_products": {
+      const products = [];
+      const keyIndex = new Map();
+      for (const product of testCase.products) {
+        parser.addUniqueProduct(products, keyIndex, { ...product });
+      }
+      assert.equal(products.length, testCase.expectedCount);
+      return;
+    }
     case "export_columns": {
       const sample = [{
         id: "p1",

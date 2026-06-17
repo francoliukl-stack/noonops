@@ -1,5 +1,5 @@
 {
-  "version": "0.1.5",
+  "version": "0.1.6",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.5"
+      "version": "0.1.6"
     },
     {
       "id": "PRD-001",
@@ -258,14 +258,27 @@
     {
       "id": "DEDUPE-001",
       "category": "extraction",
-      "title": "Detail page extraction deduplicates product cards by canonical SKU",
-      "type": "file_contains",
-      "file": "src/parser.js",
-      "contains": [
-        "canonicalProductKey",
-        "sku:",
-        "seenKeys.add(canonicalProductKey"
-      ]
+      "title": "Duplicate product candidates collapse into one product before release",
+      "type": "dedupe_products",
+      "products": [
+        {
+          "id": "candidate-1",
+          "title": "Dreamhouse Playset Pool Party Doll House",
+          "url": "https://www.noon.com/uae-en/dreamhouse-playset-pool-party-doll-house/p/?o=one",
+          "price": 129,
+          "reviewCount": 23,
+          "pagePosition": 1
+        },
+        {
+          "id": "candidate-2",
+          "title": "Dreamhouse Playset Pool Party Doll House",
+          "url": "https://www.noon.com/uae-en/dreamhouse-playset-pool-party-doll-house/p/?o=two",
+          "price": 129,
+          "reviewCount": 23,
+          "pagePosition": 2
+        }
+      ],
+      "expectedCount": 1
     },
     {
       "id": "METRIC-001",

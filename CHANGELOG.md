@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 - 2026-06-17
+
+- Strengthened product deduplication across list and detail pages using canonical SKU, normalized title, title plus price, and image identity.
+- Merged duplicate product candidates instead of rendering repeated rows in the floating sort list.
+- Replaced the previous static dedupe evaluation with an executable release-gate case that verifies duplicate candidates collapse to one product.
+- Added regression coverage for repeated list cards with the same title but different tracking URLs.
+
 ## 0.1.5 - 2026-06-17
 
 - Fixed heat extraction for delayed or split detail-page ratings where noon renders the score and rating count as separate nearby DOM nodes.

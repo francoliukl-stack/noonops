@@ -25,6 +25,14 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
+  function normalizeKeyText(value) {
+    return normalizeWhitespace(value)
+      .toLowerCase()
+      .replace(/&amp;/g, "&")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
   function parseCompactNumber(value) {
     const normalized = String(value || "").replace(/,/g, "").trim();
     const match = normalized.match(/([0-9]+(?:\.[0-9]+)?)\s*([kKmM])?/);
@@ -445,16 +453,83 @@
     return `title:${normalizeWhitespace(title).toLowerCase()}`;
   }
 
+  function productIdentityKeys(product) {
+    const keys = new Set();
+    const canonical = canonicalProductKey(product.url, product.title);
+    if (canonical) {
+      keys.add(canonical);
+    }
+
+    const normalizedTitle = normalizeKeyText(product.title);
+    if (normalizedTitle && normalizedTitle.length >= 12) {
+      keys.add(`title:${normalizedTitle}`);
+      if (Number.isFinite(product.price)) {
+        keys.add(`title-price:${normalizedTitle}|${product.price}`);
+      }
+    }
+
+    if (product.imageUrl) {
+      try {
+        const imageUrl = new URL(product.imageUrl, globalScope.location && globalScope.location.href);
+        keys.add(`image:${imageUrl.origin}${imageUrl.pathname}`.toLowerCase());
+      } catch (_error) {
+        keys.add(`image:${String(product.imageUrl).split("?")[0]}`.toLowerCase());
+      }
+    }
+
+    return Array.from(keys);
+  }
+
+  function mergeProduct(existing, incoming) {
+    for (const [key, value] of Object.entries(incoming)) {
+      if ((existing[key] === undefined || existing[key] === "" || existing[key] === null) && value !== undefined && value !== "") {
+        existing[key] = value;
+      }
+    }
+    if (!Number.isFinite(existing.reviewCount) && Number.isFinite(incoming.reviewCount)) {
+      existing.reviewCount = incoming.reviewCount;
+    }
+    if (!Number.isFinite(existing.salesSignalCount) && Number.isFinite(incoming.salesSignalCount)) {
+      existing.salesSignalCount = incoming.salesSignalCount;
+      existing.salesSignalText = incoming.salesSignalText;
+      existing.salesSignalSource = incoming.salesSignalSource;
+    }
+    if (!Number.isFinite(existing.price) && Number.isFinite(incoming.price)) {
+      existing.price = incoming.price;
+      existing.currency = incoming.currency;
+    }
+    return existing;
+  }
+
+  function addUniqueProduct(products, keyIndex, product) {
+    const keys = productIdentityKeys(product);
+    const existing = keys.map((key) => keyIndex.get(key)).find(Boolean);
+    if (existing) {
+      mergeProduct(existing, product);
+      for (const key of keys) {
+        keyIndex.set(key, existing);
+      }
+      return existing;
+    }
+
+    product.id = `product-${products.length + 1}`;
+    product.pagePosition = products.length + 1;
+    products.push(product);
+    for (const key of keys) {
+      keyIndex.set(key, product);
+    }
+    return product;
+  }
+
   function extractProducts(documentRef, baseUrl) {
     const documentObject = documentRef || globalScope.document;
     const cards = findProductCards(documentObject);
     const products = [];
-    const seenKeys = new Set();
+    const keyIndex = new Map();
     const detailProduct = extractDetailProduct(documentObject, baseUrl);
 
     if (detailProduct) {
-      products.push(detailProduct);
-      seenKeys.add(canonicalProductKey(detailProduct.url, detailProduct.title));
+      addUniqueProduct(products, keyIndex, detailProduct);
     }
 
     cards.forEach((card) => {
@@ -469,15 +544,11 @@
       const reviewCount = findReviewCount(card);
       const originalPrice = findOriginalPrice(card);
       const discountText = findDiscount(card);
-      const key = canonicalProductKey(url, title);
-
-      if (!title || seenKeys.has(key)) {
+      if (!title) {
         return;
       }
-
-      seenKeys.add(key);
       const product = {
-        id: `product-${products.length + 1}`,
+        id: "",
         title,
         url,
         imageUrl: imageUrl || undefined,
@@ -489,14 +560,14 @@
         salesCount: salesInfo.salesCount,
         rating,
         reviewCount,
-        pagePosition: products.length + 1,
+        pagePosition: 0,
         sourceElement: card
       };
       const salesSignal = getSalesSignal(product);
       product.salesSignalCount = salesSignal.count;
       product.salesSignalText = salesSignal.text;
       product.salesSignalSource = salesSignal.source;
-      products.push(product);
+      addUniqueProduct(products, keyIndex, product);
     });
 
     return products;
@@ -622,6 +693,7 @@
   const api = {
     isNoonHost,
     normalizeWhitespace,
+    normalizeKeyText,
     parseCompactNumber,
     parseSalesText,
     parsePriceText,
@@ -631,6 +703,8 @@
     getSalesSignal,
     extractDetailProduct,
     canonicalProductKey,
+    productIdentityKeys,
+    addUniqueProduct,
     extractProducts,
     sortProducts,
     summarizeProducts,

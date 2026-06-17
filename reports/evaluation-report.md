@@ -1,8 +1,8 @@
 # Evaluation Report
 
 - Project: Noon Sales Ops Copilot
-- Evaluation set version: 0.1.5
-- Generated at: 2026-06-16T17:46:53.435Z
+- Evaluation set version: 0.1.6
+- Generated at: 2026-06-17T00:00:39.892Z
 - Evaluation cases: 18/18 passed (100%)
 - Node tests: passed
 - Completion status: COMPLETE
@@ -23,7 +23,7 @@
 | SORT-000 | sorting | Default sorting uses Ratings heat instead of sales volume | passed | OK |
 | SORT-001 | sorting | Default sales sorting puts missing sales last | passed | OK |
 | EXPORT-001 | export | CSV and table copy exports include stable business columns | passed | OK |
-| DEDUPE-001 | extraction | Detail page extraction deduplicates product cards by canonical SKU | passed | OK |
+| DEDUPE-001 | extraction | Duplicate product candidates collapse into one product before release | passed | OK |
 | METRIC-001 | interaction | Product cards highlight the active sorting metric and avoid duplicate secondary indicators | passed | OK |
 | LOCATE-001 | interaction | Product title click locates the current page item instead of opening a new page | passed | OK |
 | AUTO-001 | interaction | Panel auto refreshes when URL or page product DOM changes | passed | OK |
@@ -37,82 +37,88 @@ TAP version 13
 # Subtest: isNoonHost only accepts noon domains
 ok 1 - isNoonHost only accepts noon domains
   ---
-  duration_ms: 0.733541
+  duration_ms: 0.797417
   type: 'test'
   ...
 # Subtest: parseSalesText supports common sales formats
 ok 2 - parseSalesText supports common sales formats
   ---
-  duration_ms: 0.336792
+  duration_ms: 0.35425
   type: 'test'
   ...
 # Subtest: parseReviewCountText supports noon Ratings text
 ok 3 - parseReviewCountText supports noon Ratings text
   ---
-  duration_ms: 0.404667
+  duration_ms: 0.424333
   type: 'test'
   ...
 # Subtest: sales signal uses sold first and ratings as fallback
 ok 4 - sales signal uses sold first and ratings as fallback
   ---
-  duration_ms: 0.538583
+  duration_ms: 0.588292
   type: 'test'
   ...
 # Subtest: extractDetailProduct reads noon detail page sales from body text
 ok 5 - extractDetailProduct reads noon detail page sales from body text
   ---
-  duration_ms: 0.611583
+  duration_ms: 0.632416
   type: 'test'
   ...
 # Subtest: extractDetailProduct falls back to Ratings as sales signal
 ok 6 - extractDetailProduct falls back to Ratings as sales signal
   ---
-  duration_ms: 0.139125
+  duration_ms: 0.149166
   type: 'test'
   ...
 # Subtest: extractDetailProduct reads adjacent detail page rating count when rating node omits label
 ok 7 - extractDetailProduct reads adjacent detail page rating count when rating node omits label
   ---
-  duration_ms: 0.129791
+  duration_ms: 0.131334
   type: 'test'
   ...
 # Subtest: extractProducts deduplicates detail page product card with the same SKU
 ok 8 - extractProducts deduplicates detail page product card with the same SKU
   ---
-  duration_ms: 0.511167
+  duration_ms: 0.655417
+  type: 'test'
+  ...
+# Subtest: extractProducts deduplicates repeated list cards by normalized title
+ok 9 - extractProducts deduplicates repeated list cards by normalized title
+  ---
+  duration_ms: 0.370084
   type: 'test'
   ...
 # Subtest: parsePriceText extracts currency and price
-ok 9 - parsePriceText extracts currency and price
+ok 10 - parsePriceText extracts currency and price
   ---
-  duration_ms: 0.234875
+  duration_ms: 0.284209
   type: 'test'
   ...
 # Subtest: default sort uses Ratings heat before sales signal
-ok 10 - default sort uses Ratings heat before sales signal
+ok 11 - default sort uses Ratings heat before sales signal
   ---
-  duration_ms: 0.287792
+  duration_ms: 0.134167
   type: 'test'
   ...
 # Subtest: sales sort puts missing sales last
-ok 11 - sales sort puts missing sales last
+ok 12 - sales sort puts missing sales last
   ---
-  duration_ms: 0.085666
+  duration_ms: 0.0435
   type: 'test'
   ...
 # Subtest: exports tsv and csv with stable columns
-ok 12 - exports tsv and csv with stable columns
+ok 13 - exports tsv and csv with stable columns
   ---
-  duration_ms: 0.218667
+  duration_ms: 0.222416
   type: 'test'
   ...
-1..12
-# tests 12
+1..13
+# tests 13
 # suites 0
-# pass 12
+# pass 13
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 73.921875
+# duration_ms 81.796375
 ```
