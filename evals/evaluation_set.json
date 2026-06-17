@@ -1,5 +1,5 @@
 {
-  "version": "0.1.10",
+  "version": "0.1.11",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.10"
+      "version": "0.1.11"
     },
     {
       "id": "PRD-001",
@@ -24,6 +24,21 @@
         "# Noon Sales Ops Copilot Chrome 插件 PRD v0.1",
         "Evaluation Policy",
         "100% 通过"
+      ]
+    },
+    {
+      "id": "README-001",
+      "category": "release_hygiene",
+      "title": "README documents the current install path, version, refresh UX, and locate behavior",
+      "type": "file_contains",
+      "file": "README.md",
+      "contains": [
+        "v0.1.11",
+        "换一台电脑安装",
+        "渐进式稳定加载",
+        "只展示具备可用 noon 商品详情链接",
+        "定位时浮窗会临时收起",
+        "npm run evaluate"
       ]
     },
     {

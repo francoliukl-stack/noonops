@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.11 - 2026-06-17
+
+- Updated README to match the current extension behavior, installation flow, progressive refresh UX, display-ready product filtering, and locate visibility improvements.
+- Added new-machine installation guidance for loading the unpacked extension from the GitHub repository.
+- Added README traceability to the release evaluation set so documentation freshness is checked before future releases.
+
 ## 0.1.10 - 2026-06-17
 
 - Added post-scroll visibility checks for product locating so the target is nudged away from the panel and viewport edges if it is still partially hidden.
