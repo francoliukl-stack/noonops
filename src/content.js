@@ -28,7 +28,12 @@
     refreshStatus: "idle",
     refreshMessage: "尚未刷新",
     lastUpdatedAt: "",
-    lastRefreshCount: 0
+    lastRefreshCount: 0,
+    refreshProgress: 0,
+    refreshAttempt: 0,
+    refreshAttempts: 0,
+    expectedProducts: 0,
+    skippedProducts: 0
   };
   let refreshTimer;
   let refreshRunId = 0;
@@ -105,19 +110,39 @@
     }
   }
 
-  function analyzePage() {
-    const hostname = globalScope.location.hostname;
-    const previousUrl = state.lastAnalyzedUrl;
-    state.supported = parser.isNoonHost(hostname);
-    state.lastAnalyzedUrl = globalScope.location.href;
-    if (!state.supported) {
+  function resetForProgressiveRefresh(reason, attempts) {
+    state.refreshAttempt = 0;
+    state.refreshAttempts = attempts;
+    state.refreshProgress = reason === "url" || reason === "click" ? 6 : 10;
+    state.expectedProducts = 0;
+    state.skippedProducts = 0;
+    if (reason === "url" || reason === "click") {
       state.products = [];
       state.sortedProducts = [];
-      state.insights = [{
-        type: "data_gap",
-        title: "不支持当前页面",
-        message: "请在 noon 商品列表、搜索结果或店铺商品页中打开插件。"
-      }];
+      state.insights = [];
+      state.lastSignature = "";
+    }
+  }
+
+  function analyzePage(options = {}) {
+    const shouldCommit = options.commit !== false;
+    const hostname = globalScope.location.hostname;
+    const previousUrl = state.lastAnalyzedUrl;
+    const supported = parser.isNoonHost(hostname);
+    if (shouldCommit) {
+      state.supported = supported;
+      state.lastAnalyzedUrl = globalScope.location.href;
+    }
+    if (!supported) {
+      if (shouldCommit) {
+        state.products = [];
+        state.sortedProducts = [];
+        state.insights = [{
+          type: "data_gap",
+          title: "不支持当前页面",
+          message: "请在 noon 商品列表、搜索结果或店铺商品页中打开插件。"
+        }];
+      }
       return {
         products: [],
         signature: buildPageSignature([]),
@@ -125,15 +150,25 @@
       };
     }
 
-    const products = parser.extractProducts(document, globalScope.location.href);
+    const extractedProducts = parser.extractProducts(document, globalScope.location.href);
+    const products = extractedProducts.filter((product) => parser.isDisplayReadyProduct(product));
+    const linkedExtractedCount = extractedProducts.filter((product) => parser.hasUsableProductLink(product)).length;
+    const expectedProducts = Math.max(
+      products.length,
+      linkedExtractedCount || parser.countProductLinkCandidates(document)
+    );
     const sortedProducts = parser.sortProducts(products, state.sortMode);
     const signature = buildPageSignature(products);
     const changed = signature !== state.lastSignature || globalScope.location.href !== previousUrl;
-    state.products = products;
-    state.sortedProducts = sortedProducts;
-    state.insights = insightsApi.createInsights(products);
-    state.lastSignature = signature;
-    return { products, signature, changed };
+    if (shouldCommit) {
+      state.products = products;
+      state.sortedProducts = sortedProducts;
+      state.insights = insightsApi.createInsights(products);
+      state.lastSignature = signature;
+      state.expectedProducts = expectedProducts;
+      state.skippedProducts = Math.max(0, extractedProducts.length - products.length);
+    }
+    return { products, signature, changed, expectedProducts, skippedProducts: Math.max(0, extractedProducts.length - products.length) };
   }
 
   function analyzeAndRender() {
@@ -152,14 +187,15 @@
     state.supported = parser.isNoonHost(globalScope.location.hostname);
     state.refreshStatus = isNavigation ? "waiting" : "refreshing";
     state.refreshMessage = getRefreshStartMessage(reason);
-    render();
 
     const attempts = options.attempts || (isNavigation ? 8 : options.force ? 5 : 4);
     const interval = options.interval || (isNavigation ? 240 : 160);
-    runRefreshAttempt(runId, reason, attempts, interval, 1);
+    resetForProgressiveRefresh(reason, attempts);
+    render();
+    runRefreshAttempt(runId, reason, attempts, interval, 1, "", 0);
   }
 
-  function runRefreshAttempt(runId, reason, attempts, interval, attempt) {
+  function runRefreshAttempt(runId, reason, attempts, interval, attempt, previousSignature, stablePasses) {
     if (runId !== refreshRunId) {
       return;
     }
@@ -170,22 +206,39 @@
       }
 
       state.refreshStatus = "refreshing";
-      state.refreshMessage = attempt > 1 ? `正在等待页面数据加载 (${attempt}/${attempts})` : "正在读取当前页面商品";
+      state.refreshAttempt = attempt;
+      state.refreshAttempts = attempts;
+      state.refreshMessage = attempt > 1 ? `正在稳定商品数据 (${attempt}/${attempts})` : "正在读取当前页面商品";
       render();
 
       const beforeSignature = state.lastSignature;
-      const result = analyzePage();
-      const hasProducts = result.products.length > 0;
+      const minAttempts = reason === "url" || reason === "click" ? 3 : 2;
+      const shouldCommitResult = !(reason === "url" || reason === "click") || attempt >= minAttempts;
+      const result = analyzePage({ commit: shouldCommitResult });
+      const readyCount = result.products.length;
+      const expectedCount = result.expectedProducts;
+      const hasProducts = readyCount > 0;
       const changed = result.signature !== beforeSignature;
-      const minAttempts = reason === "url" || reason === "click" ? 3 : 1;
-      const shouldFinish = (hasProducts && attempt >= minAttempts) || attempt >= attempts || (!parser.isNoonHost(globalScope.location.hostname));
+      const nextStablePasses = result.signature && result.signature === previousSignature ? stablePasses + 1 : 0;
+      const minStablePasses = 1;
+      state.refreshProgress = calculateRefreshProgress(attempt, attempts, readyCount, expectedCount, nextStablePasses);
+      state.refreshMessage = buildProgressMessage(reason, readyCount, expectedCount, attempt, attempts);
+      if (!shouldCommitResult) {
+        state.expectedProducts = expectedCount;
+      }
+      render();
 
-      if (!shouldFinish && (reason === "url" || reason === "click" || reason === "dom")) {
-        runRefreshAttempt(runId, reason, attempts, interval, attempt + 1);
+      const shouldFinish = (!parser.isNoonHost(globalScope.location.hostname)) ||
+        attempt >= attempts ||
+        (hasProducts && attempt >= minAttempts && nextStablePasses >= minStablePasses);
+
+      if (!shouldFinish) {
+        runRefreshAttempt(runId, reason, attempts, interval, attempt + 1, result.signature, nextStablePasses);
         return;
       }
 
       state.refreshStatus = "complete";
+      state.refreshProgress = state.supported ? 100 : 0;
       state.lastUpdatedAt = new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -195,6 +248,27 @@
       state.refreshMessage = buildRefreshDoneMessage(reason, result.products.length, changed);
       render();
     }, attempt === 1 ? 40 : interval);
+  }
+
+  function calculateRefreshProgress(attempt, attempts, readyCount, expectedCount, stablePasses) {
+    const attemptProgress = Math.round((attempt / attempts) * 82);
+    const dataProgress = expectedCount > 0 ? Math.round((readyCount / expectedCount) * 86) : 0;
+    const stableBonus = Math.min(stablePasses * 7, 12);
+    return Math.max(8, Math.min(96, Math.max(attemptProgress, dataProgress) + stableBonus));
+  }
+
+  function buildProgressMessage(reason, readyCount, expectedCount, attempt, attempts) {
+    if (!state.supported) {
+      return "当前页面不支持分析";
+    }
+    const totalText = expectedCount > 0 ? `/${expectedCount}` : "";
+    if (readyCount > 0) {
+      return `已显示 ${readyCount}${totalText} 件可用商品，继续校验链接和指标`;
+    }
+    if (reason === "url" || reason === "click") {
+      return `页面加载中，正在等待商品卡片 (${attempt}/${attempts})`;
+    }
+    return `正在识别可用商品 (${attempt}/${attempts})`;
   }
 
   function buildPageSignature(products) {
@@ -330,10 +404,17 @@
   function renderRefreshStatus() {
     const wrapper = createElement("div", `noon-ops-refresh noon-ops-refresh-${state.refreshStatus}`);
     const dot = createElement("span", "noon-ops-refresh-dot");
+    const content = createElement("div", "noon-ops-refresh-content");
     const message = createElement("span", "noon-ops-refresh-message", state.refreshMessage);
-    const metaText = state.lastUpdatedAt ? `更新于 ${state.lastUpdatedAt} · ${state.lastRefreshCount} 件商品` : "等待首次刷新";
+    const progress = createElement("div", "noon-ops-progress");
+    const progressBar = createElement("span", "noon-ops-progress-bar");
+    progressBar.style.width = `${Math.max(0, Math.min(100, state.refreshProgress))}%`;
+    progress.appendChild(progressBar);
+    content.append(message, progress);
+    const readyText = state.expectedProducts > 0 ? `${state.products.length}/${state.expectedProducts}` : String(state.products.length);
+    const metaText = state.lastUpdatedAt ? `更新于 ${state.lastUpdatedAt} · ${readyText} 件可用` : `准备中 · ${readyText} 件可用`;
     const meta = createElement("span", "noon-ops-refresh-meta", metaText);
-    wrapper.append(dot, message, meta);
+    wrapper.append(dot, content, meta);
     return wrapper;
   }
 
@@ -384,8 +465,14 @@
 
     if (!state.sortedProducts.length) {
       const empty = createElement("div", "noon-ops-empty");
-      empty.appendChild(createElement("h3", "", "未识别到商品"));
-      empty.appendChild(createElement("p", "", "请确认当前页面已经加载商品卡片，然后点击刷新。"));
+      if (state.refreshStatus === "waiting" || state.refreshStatus === "refreshing") {
+        empty.appendChild(createElement("h3", "", "正在加载可用商品"));
+        empty.appendChild(createElement("p", "", "商品标题和链接完整后会逐个显示在这里。"));
+        empty.appendChild(renderSkeletonList());
+      } else {
+        empty.appendChild(createElement("h3", "", "未识别到商品"));
+        empty.appendChild(createElement("p", "", "请确认当前页面已经加载商品卡片，然后点击刷新。"));
+      }
       list.appendChild(empty);
     }
 
@@ -409,8 +496,29 @@
       list.appendChild(item);
     });
 
+    if (state.sortedProducts.length && (state.refreshStatus === "waiting" || state.refreshStatus === "refreshing")) {
+      const loading = createElement("div", "noon-ops-inline-loading");
+      loading.appendChild(createElement("strong", "", "继续加载中"));
+      loading.appendChild(createElement("span", "", "只展示已具备可用商品链接的结果，后续商品会自动补充。"));
+      list.appendChild(loading);
+    }
+
     section.appendChild(list);
     return section;
+  }
+
+  function renderSkeletonList() {
+    const skeletons = createElement("div", "noon-ops-skeletons");
+    for (let index = 0; index < 3; index += 1) {
+      const row = createElement("div", "noon-ops-skeleton-row");
+      row.appendChild(createElement("span", "noon-ops-skeleton-rank"));
+      const lines = createElement("div", "noon-ops-skeleton-lines");
+      lines.appendChild(createElement("span", "noon-ops-skeleton-line"));
+      lines.appendChild(createElement("span", "noon-ops-skeleton-line noon-ops-skeleton-line-short"));
+      row.appendChild(lines);
+      skeletons.appendChild(row);
+    }
+    return skeletons;
   }
 
   function formatSalesMetric(product) {
@@ -624,15 +732,15 @@
       return "当前页面不支持分析";
     }
     if (count === 0) {
-      return "刷新完成，未识别到商品";
+      return "刷新完成，未识别到可用商品";
     }
     if (reason === "manual") {
-      return `刷新完成，已识别 ${count} 件商品`;
+      return `刷新完成，已显示 ${count} 件可用商品`;
     }
     if (!changed) {
-      return `已检查，当前仍为 ${count} 件商品`;
+      return `已检查，当前仍为 ${count} 件可用商品`;
     }
-    return `已自动刷新，识别 ${count} 件商品`;
+    return `已自动刷新，显示 ${count} 件可用商品`;
   }
 
   chrome.runtime.onMessage.addListener((message) => {

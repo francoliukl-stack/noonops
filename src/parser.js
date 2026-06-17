@@ -182,6 +182,10 @@
     return /\/p\/?/i.test(String(href || ""));
   }
 
+  function hasUsableProductLink(product) {
+    return Boolean(product && product.url && isProductHref(product.url));
+  }
+
   function getElementText(element) {
     return normalizeWhitespace(element ? element.textContent : "");
   }
@@ -439,6 +443,24 @@
     return cards;
   }
 
+  function countProductLinkCandidates(documentRef) {
+    const documentObject = documentRef || globalScope.document;
+    if (!documentObject || !documentObject.querySelectorAll) {
+      return 0;
+    }
+
+    const keys = new Set();
+    const links = Array.from(documentObject.querySelectorAll('a[href*="/p/"]'));
+    for (const link of links) {
+      const href = link.getAttribute("href");
+      if (!isProductHref(href)) {
+        continue;
+      }
+      keys.add(canonicalProductKey(absoluteUrl(href, documentObject.location && documentObject.location.href), ""));
+    }
+    return keys.size;
+  }
+
   function isLikelyProduct(product) {
     const title = normalizeWhitespace(product && product.title);
     if (!title || title.length < 8 || NON_PRODUCT_TITLE_RE.test(title)) {
@@ -454,6 +476,21 @@
     const hasCommercialSignal = Number.isFinite(product.price) || Number.isFinite(product.salesCount) || Number.isFinite(product.reviewCount);
     const hasMerchandisingSignal = Number.isFinite(product.rating) || Boolean(product.imageUrl) || Boolean(product.discountText);
     return hasProductUrl || (hasCommercialSignal && hasMerchandisingSignal) || (Number.isFinite(product.price) && title.length >= 12);
+  }
+
+  function isDisplayReadyProduct(product) {
+    if (!isLikelyProduct(product) || !hasUsableProductLink(product)) {
+      return false;
+    }
+    const title = normalizeWhitespace(product.title);
+    if (!title || title.length < 8 || NON_PRODUCT_TITLE_RE.test(title)) {
+      return false;
+    }
+    return Number.isFinite(product.price) ||
+      Number.isFinite(product.salesSignalCount) ||
+      Number.isFinite(product.reviewCount) ||
+      Number.isFinite(product.rating) ||
+      Boolean(product.imageUrl);
   }
 
   function canonicalProductKey(url, title) {
@@ -723,8 +760,11 @@
     parseReviewCountText,
     parseStandaloneCountText,
     isProductHref,
+    hasUsableProductLink,
+    countProductLinkCandidates,
     getSalesSignal,
     isLikelyProduct,
+    isDisplayReadyProduct,
     extractDetailProduct,
     canonicalProductKey,
     productIdentityKeys,

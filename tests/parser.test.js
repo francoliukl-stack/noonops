@@ -260,6 +260,40 @@ test("isLikelyProduct rejects utility rows and accepts product candidates", () =
   }), true);
 });
 
+test("isDisplayReadyProduct requires a usable product link before display", () => {
+  assert.equal(parser.isDisplayReadyProduct({
+    title: "Dreamhouse Playset Pool Party Doll House",
+    url: "",
+    price: 129,
+    reviewCount: 23
+  }), false);
+  assert.equal(parser.isDisplayReadyProduct({
+    title: "Dreamhouse Playset Pool Party Doll House",
+    url: "https://www.noon.com/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/",
+    price: 129,
+    reviewCount: 23
+  }), true);
+});
+
+test("countProductLinkCandidates deduplicates visible product links", () => {
+  const firstLink = fakeNode("", {
+    href: "/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/?o=one",
+    matches: true
+  });
+  const secondLink = fakeNode("", {
+    href: "/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/?o=two",
+    matches: true
+  });
+  const documentLike = fakeNode("", {}, {}, {
+    'a[href*="/p/"]': [firstLink, secondLink]
+  });
+  documentLike.location = {
+    href: "https://www.noon.com/uae-en/search/?q=dreamhouse"
+  };
+
+  assert.equal(parser.countProductLinkCandidates(documentLike), 1);
+});
+
 test("parsePriceText extracts currency and price", () => {
   assert.deepEqual(parser.parsePriceText("AED 129.50"), {
     price: 129.5,

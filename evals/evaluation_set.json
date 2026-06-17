@@ -1,5 +1,5 @@
 {
-  "version": "0.1.7",
+  "version": "0.1.8",
   "project": "Noon Sales Ops Copilot",
   "completionPolicy": {
     "requiredPassRate": 100,
@@ -12,7 +12,7 @@
       "category": "release_hygiene",
       "title": "Package, manifest, evaluation set, and changelog latest version stay aligned",
       "type": "version_alignment",
-      "version": "0.1.7"
+      "version": "0.1.8"
     },
     {
       "id": "PRD-001",
@@ -308,6 +308,34 @@
       ]
     },
     {
+      "id": "READY-001",
+      "category": "extraction",
+      "title": "Only complete products with usable noon product links can be displayed",
+      "type": "display_ready_product",
+      "samples": [
+        {
+          "title": "Reject product candidate without usable link",
+          "product": {
+            "title": "Dreamhouse Playset Pool Party Doll House",
+            "url": "",
+            "price": 129,
+            "reviewCount": 23
+          },
+          "expected": false
+        },
+        {
+          "title": "Accept complete product candidate with noon product link",
+          "product": {
+            "title": "Dreamhouse Playset Pool Party Doll House",
+            "url": "https://www.noon.com/uae-en/dreamhouse-playset-pool-party-doll-house/Z779A06B254C62B0273EBZ/p/",
+            "price": 129,
+            "reviewCount": 23
+          },
+          "expected": true
+        }
+      ]
+    },
+    {
       "id": "METRIC-001",
       "category": "interaction",
       "title": "Product cards highlight the active sorting metric and avoid duplicate secondary indicators",
@@ -349,7 +377,11 @@
         "refreshStatus",
         "startLocationPolling",
         "mutationLooksRelevant",
-        "minAttempts"
+        "minAttempts",
+        "calculateRefreshProgress",
+        "renderSkeletonList",
+        "isDisplayReadyProduct",
+        "shouldCommitResult"
       ]
     },
     {

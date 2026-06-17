@@ -103,6 +103,12 @@ function runCase(testCase) {
       }
       return;
     }
+    case "display_ready_product": {
+      for (const sample of testCase.samples) {
+        assert.equal(parser.isDisplayReadyProduct(sample.product), sample.expected, sample.title || sample.product.title);
+      }
+      return;
+    }
     case "export_columns": {
       const sample = [{
         id: "p1",

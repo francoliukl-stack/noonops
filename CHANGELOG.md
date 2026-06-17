@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8 - 2026-06-17
+
+- Reworked refresh into a progressive stable-loading flow that clears stale page results after navigation and waits for consecutive stable reads before marking refresh complete.
+- Added a progress bar, loading copy, skeleton rows, and visible ready/expected product counts so users understand how much of the current page has loaded.
+- Restricted the floating sort list, copy, and CSV export to display-ready products with usable noon product links, preventing incomplete rows with broken links.
+- Allowed complete products to appear incrementally while the rest of the page is still loading.
+- Added parser tests and release-gate evaluation for display-ready product filtering.
+
 ## 0.1.7 - 2026-06-17
 
 - Improved refresh interaction with visible waiting, reading, and completion states plus last update time and recognized product count.
