@@ -17,13 +17,14 @@
     {
       "id": "PRD-001",
       "category": "prd_traceability",
-      "title": "PRD is stored as Markdown and includes evaluation policy",
+      "title": "The operating assistant PRD preserves shipped/planned boundaries and evaluation policy",
       "type": "file_contains",
       "file": "docs/PRD.md",
       "contains": [
-        "# Noon Sales Ops Copilot Chrome 插件 PRD v0.1",
-        "Evaluation Policy",
-        "100% 通过"
+        "# Noon 选品运营助手 PRD v1.0",
+        "## 7. 已实现基线与待建设范围",
+        "## 20. 评测与测试要求",
+        "基础自动化测试和长期解析评测必须全部通过"
       ]
     },
     {
